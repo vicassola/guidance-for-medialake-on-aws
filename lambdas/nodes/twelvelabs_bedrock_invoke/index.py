@@ -39,31 +39,6 @@ def _detect_chunk_item(event: Dict[str, Any]):
     return None
 
 
-def _resolve_marengo_inference_profile(model_id: str) -> str:
-    """Map a TwelveLabs Marengo foundation-model ID to a region-appropriate
-    cross-region inference-profile ID, which is what Bedrock StartAsyncInvoke
-    requires for these models. Pass through ARNs and values already prefixed
-    with a region scope (us./eu./apac.).
-    """
-    if not model_id:
-        return model_id
-    if model_id.startswith("arn:"):
-        return model_id
-    if model_id.split(".", 1)[0] in ("us", "eu", "apac"):
-        return model_id
-    if "twelvelabs.marengo-embed" not in model_id:
-        return model_id
-
-    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or ""
-    if region.startswith("eu-"):
-        prefix = "eu"
-    elif region.startswith("ap-"):
-        prefix = "apac"
-    else:
-        prefix = "us"
-    return f"{prefix}.{model_id}"
-
-
 @lambda_middleware(event_bus_name=EVENT_BUS_NAME)
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
@@ -78,16 +53,20 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         # Extract parameters from event
         payload = event.get("payload", {})
 
-        # Get configuration from environment variables (set during pipeline deployment)
-        raw_model_id = os.environ.get("MODEL_ID", "twelvelabs.marengo-embed-2-7-v1:0")
+        # Get configuration from environment variables (set during pipeline deployment).
+        # IMPORTANT: StartAsyncInvoke must receive the raw foundation-model ID
+        # (e.g. "twelvelabs.marengo-embed-3-0-v1:0"), NOT a cross-region
+        # inference-profile ID like "us.twelvelabs...". StartAsyncInvoke is not
+        # listed among the APIs that accept inference profiles:
+        # https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-use.html
+        # Passing a profile ID here yields: "The provided model doesn't support async inference."
+        model_id_env_raw = os.environ.get("MODEL_ID")
+        logger.info(
+            "MODEL_ID env var (raw, pre-default)",
+            extra={"model_id_env_raw": model_id_env_raw},
+        )
+        model_id = model_id_env_raw or "twelvelabs.marengo-embed-2-7-v1:0"
         s3_output_bucket = os.environ.get("EXTERNAL_PAYLOAD_BUCKET")
-
-        # TwelveLabs Marengo Embed models on Bedrock are only available via
-        # cross-region inference profiles. StartAsyncInvoke must receive an
-        # inference-profile ID (e.g. "us.twelvelabs.marengo-embed-3-0-v1:0"),
-        # not the raw foundation-model ID. Resolve at runtime so pipeline
-        # templates authored with either form continue to work.
-        model_id = _resolve_marengo_inference_profile(raw_model_id)
 
         # Get input type from environment variable set during pipeline deployment
         input_type = os.environ.get("CONNECTION_INPUT_TYPE")
@@ -107,19 +86,20 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         # Detect model version - 3.0 uses different schema than 2.7
         is_marengo_3 = "3-0" in model_id or "3.0" in model_id
 
+        # Initialize clients (region is auto-detected from the Lambda execution environment)
+        bedrock_runtime = boto3.client("bedrock-runtime")
+
         logger.info(
             "Configuration",
             extra={
-                "raw_model_id": raw_model_id,
+                "model_id_env_raw": model_id_env_raw,
                 "model_id": model_id,
                 "input_type": input_type,
                 "s3_output_bucket": s3_output_bucket,
                 "is_marengo_3": is_marengo_3,
+                "bedrock_region": bedrock_runtime.meta.region_name,
             },
         )
-
-        # Initialize clients (region is auto-detected from the Lambda execution environment)
-        bedrock_runtime = boto3.client("bedrock-runtime")
         boto3.client("s3")
         sts = boto3.client("sts")
 
@@ -418,13 +398,16 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
             raise RuntimeError(f"Unsupported input type: {input_type}")
 
         # Start async invoke with retry logic
+        s3_output_uri = f"s3://{s3_output_bucket}/{output_prefix}"
         logger.info(
-            "Starting Bedrock async invoke with retry protection",
+            "Calling StartAsyncInvoke",
             extra={
                 "model_id": model_id,
+                "model_id_env_raw": model_id_env_raw,
+                "bedrock_region": bedrock_runtime.meta.region_name,
                 "input_type": input_type,
-                "s3_output_bucket": s3_output_bucket,
-                "output_prefix": output_prefix,
+                "s3_output_uri": s3_output_uri,
+                "model_input": model_input,
             },
         )
 
@@ -481,7 +464,15 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         return result
 
     except Exception as e:
-        logger.exception("Error in TwelveLabs Bedrock Invoke")
+        _br = locals().get("bedrock_runtime")
+        logger.exception(
+            "Error in TwelveLabs Bedrock Invoke",
+            extra={
+                "model_id": locals().get("model_id"),
+                "model_id_env_raw": locals().get("model_id_env_raw"),
+                "bedrock_region": _br.meta.region_name if _br is not None else None,
+            },
+        )
 
         # Provide more specific error information for throttling issues
         error_msg = f"Error in TwelveLabs Bedrock Invoke: {str(e)}"

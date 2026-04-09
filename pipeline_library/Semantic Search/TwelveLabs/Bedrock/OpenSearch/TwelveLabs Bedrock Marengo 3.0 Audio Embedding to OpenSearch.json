@@ -378,7 +378,7 @@
             "operationId": "",
             "method": "invoke",
             "parameters": {
-              "Model ID": "us.twelvelabs.marengo-embed-3-0-v1:0",
+              "Model ID": "twelvelabs.marengo-embed-3-0-v1:0",
               "S3 Output Bucket": "${EXTERNAL_PAYLOAD_BUCKET}"
             }
           }
