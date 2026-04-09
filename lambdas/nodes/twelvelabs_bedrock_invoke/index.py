@@ -39,6 +39,31 @@ def _detect_chunk_item(event: Dict[str, Any]):
     return None
 
 
+def _resolve_marengo_inference_profile(model_id: str) -> str:
+    """Map a TwelveLabs Marengo foundation-model ID to a region-appropriate
+    cross-region inference-profile ID, which is what Bedrock StartAsyncInvoke
+    requires for these models. Pass through ARNs and values already prefixed
+    with a region scope (us./eu./apac.).
+    """
+    if not model_id:
+        return model_id
+    if model_id.startswith("arn:"):
+        return model_id
+    if model_id.split(".", 1)[0] in ("us", "eu", "apac"):
+        return model_id
+    if "twelvelabs.marengo-embed" not in model_id:
+        return model_id
+
+    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or ""
+    if region.startswith("eu-"):
+        prefix = "eu"
+    elif region.startswith("ap-"):
+        prefix = "apac"
+    else:
+        prefix = "us"
+    return f"{prefix}.{model_id}"
+
+
 @lambda_middleware(event_bus_name=EVENT_BUS_NAME)
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
@@ -54,13 +79,15 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         payload = event.get("payload", {})
 
         # Get configuration from environment variables (set during pipeline deployment)
-        model_id = os.environ.get("MODEL_ID", "twelvelabs.marengo-embed-2-7-v1:0")
+        raw_model_id = os.environ.get("MODEL_ID", "twelvelabs.marengo-embed-2-7-v1:0")
         s3_output_bucket = os.environ.get("EXTERNAL_PAYLOAD_BUCKET")
 
-        # NOTE: StartAsyncInvoke does NOT support cross-region inference profiles.
-        # Unlike InvokeModel/Converse, async invoke requires the raw model ID.
-        # See: https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-use.html
-        # (StartAsyncInvoke is absent from the supported API list)
+        # TwelveLabs Marengo Embed models on Bedrock are only available via
+        # cross-region inference profiles. StartAsyncInvoke must receive an
+        # inference-profile ID (e.g. "us.twelvelabs.marengo-embed-3-0-v1:0"),
+        # not the raw foundation-model ID. Resolve at runtime so pipeline
+        # templates authored with either form continue to work.
+        model_id = _resolve_marengo_inference_profile(raw_model_id)
 
         # Get input type from environment variable set during pipeline deployment
         input_type = os.environ.get("CONNECTION_INPUT_TYPE")
@@ -83,6 +110,7 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         logger.info(
             "Configuration",
             extra={
+                "raw_model_id": raw_model_id,
                 "model_id": model_id,
                 "input_type": input_type,
                 "s3_output_bucket": s3_output_bucket,
