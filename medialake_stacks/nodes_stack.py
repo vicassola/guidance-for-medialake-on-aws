@@ -219,6 +219,14 @@ class NodesStack(cdk.NestedStack):
             code_path=["lambdas", "nodes", "image_metadata_extractor"],
         )
 
+        self.image_rekognition_labels_lambda_deployment = LambdaDeployment(
+            self,
+            "ImageRekognitionLabelsLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "image_rekognition_labels"],
+        )
+
         self.video_metadata_extractor_lambda_deployment = LambdaDeployment(
             self,
             "VideoMetadataExtractorLambdaDeployment",

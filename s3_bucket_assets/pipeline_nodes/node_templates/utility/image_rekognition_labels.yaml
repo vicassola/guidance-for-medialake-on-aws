@@ -1,0 +1,64 @@
+spec: v1.0.0
+node:
+  id: image_rekognition_labels
+  title: Image Rekognition Labels
+  description: Detect labels in an image using Amazon Rekognition and store results in asset metadata
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/ImageRekognitionLabelsLambdaDeployment
+        runtime: python3.12
+        timeout: 300
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - s3:GetObject
+              resources:
+                - arn:aws:s3:::*/*
+            - effect: Allow
+              actions:
+                - rekognition:DetectLabels
+              resources:
+                - "*"
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - kms:Decrypt
+              resources:
+                - ${MEDIA_ASSETS_BUCKET_ARN_KMS_KEY}
+
+actions:
+  detect:
+    summary: Detect image labels
+    description: Detect labels in an image file stored in S3 using Amazon Rekognition
+    operationId: detectImageLabels
+    parameters:
+      - in: body
+        name: max_labels
+        required: false
+        schema:
+          type: integer
+          description: Maximum number of labels to return (1-1000)
+          default: 50
+      - in: body
+        name: min_confidence
+        required: false
+        schema:
+          type: number
+          description: Minimum confidence threshold for returned labels (0-100)
+          default: 70.0
+    x-requestMapping: processor/image_rekognition_labels/detect/
+    x-responseMapping: processor/image_rekognition_labels/detect/
+    connections:
+      incoming:
+        type: [image]
+      outgoing:
+        type: [any]
