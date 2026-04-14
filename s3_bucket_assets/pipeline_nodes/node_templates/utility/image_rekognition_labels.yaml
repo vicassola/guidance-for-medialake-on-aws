@@ -9,7 +9,7 @@ node:
     config:
       lambda:
         handler: utility/ImageRekognitionLabelsLambdaDeployment
-        lambda_source_path: s3://medialake-external-nodes-vittoria/lambdas/nodes/image_rekognition_labels/
+        lambda_source_path: lambdas/nodes/image_rekognition_labels
         runtime: python3.12
         timeout: 300
         iam_policy:
