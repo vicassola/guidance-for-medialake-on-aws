@@ -14,6 +14,7 @@ tracer = Tracer()
 rekognition = boto3.client("rekognition")
 dynamo = boto3.resource("dynamodb").Table(os.environ["MEDIALAKE_ASSET_TABLE"])
 
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
