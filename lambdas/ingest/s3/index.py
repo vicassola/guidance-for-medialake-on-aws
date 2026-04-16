@@ -900,8 +900,8 @@ class AssetProcessor:
                 f"Asset type determination for {key}: content_type={content_type}, file_ext={file_ext}, determined_type={asset_type}"
             )
 
-            # Stop processing if asset type is not one of: "Image", "Video", "Audio"
-            if asset_type not in ["Image", "Video", "Audio"]:
+            # Stop processing if asset type is not one of: "Image", "Video", "Audio", "Document"
+            if asset_type not in ["Image", "Video", "Audio", "Document"]:
                 logger.info(
                     f"Skipping processing for unsupported asset type: {asset_type} for {bucket}/{key}"
                 )

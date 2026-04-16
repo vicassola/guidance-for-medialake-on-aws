@@ -15,7 +15,7 @@ node:
           detail:
             DigitalSourceAsset:
               MainRepresentation:
-                Format: ["${Image Type}"]
+                Format: ["${Format}"]
 actions:
   trigger:
     summary: Trigger after ingest is completed
