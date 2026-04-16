@@ -46,6 +46,8 @@ actions:
               value: "MP4, MOV, AVI, MKV, WEBM, MXF"
             - label: "Audio Formats (WAV, AIFF, AIF, MP3, PCM, M4A)"
               value: "WAV, AIFF, AIF, MP3, PCM, M4A"
+            - label: "Document Formats (PDF)"
+              value: "PDF"
     connections:
       incoming:
         type: [any]

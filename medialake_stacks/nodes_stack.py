@@ -227,6 +227,30 @@ class NodesStack(cdk.NestedStack):
             code_path=["lambdas", "nodes", "image_rekognition_labels"],
         )
 
+        self.pdf_metadata_extractor_lambda_deployment = LambdaDeployment(
+            self,
+            "PdfMetadataExtractorLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "pdf_metadata_extractor"],
+        )
+
+        self.pdf_text_extractor_lambda_deployment = LambdaDeployment(
+            self,
+            "PdfTextExtractorLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "pdf_text_extractor"],
+        )
+
+        self.pdf_embedding_lambda_deployment = LambdaDeployment(
+            self,
+            "PdfEmbeddingLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "pdf_embedding"],
+        )
+
         self.video_metadata_extractor_lambda_deployment = LambdaDeployment(
             self,
             "VideoMetadataExtractorLambdaDeployment",

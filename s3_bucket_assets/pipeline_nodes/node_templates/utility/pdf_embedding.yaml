@@ -1,0 +1,78 @@
+spec: v1.0.0
+node:
+  id: pdf_embedding
+  title: PDF Embedding
+  description: Generate semantic embeddings from extracted PDF text using Amazon Bedrock Titan Embeddings and store in OpenSearch
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/PdfEmbeddingLambdaDeployment
+        runtime: python3.12
+        timeout: 900
+        vpc: true
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - s3:GetObject
+              resources:
+                - arn:aws:s3:::*/*
+            - effect: Allow
+              actions:
+                - bedrock:InvokeModel
+              resources:
+                - arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v2:0
+                - arn:aws:bedrock:*:*:inference-profile/*
+            - effect: Allow
+              actions:
+                - es:ESHttp*
+                - aoss:*
+              resources:
+                - "*"
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - kms:Decrypt
+              resources:
+                - "*"
+
+actions:
+  embed:
+    summary: Generate PDF text embeddings
+    description: Chunk extracted PDF text and generate semantic embeddings using Amazon Bedrock Titan Embeddings v2, storing results in OpenSearch
+    operationId: generatePdfEmbeddings
+    parameters:
+      - in: body
+        name: chunk_size
+        required: false
+        schema:
+          type: integer
+          description: Maximum characters per text chunk (max 8000 for Titan)
+          default: 8000
+      - in: body
+        name: chunk_overlap
+        required: false
+        schema:
+          type: integer
+          description: Character overlap between consecutive chunks
+          default: 200
+      - in: body
+        name: index_name
+        required: false
+        schema:
+          type: string
+          description: OpenSearch index name for storing embeddings
+          default: asset-embeddings
+    x-requestMapping: processor/pdf_embedding/embed/
+    x-responseMapping: processor/pdf_embedding/embed/
+    connections:
+      incoming:
+        type: [any]
+      outgoing:
+        type: [any]

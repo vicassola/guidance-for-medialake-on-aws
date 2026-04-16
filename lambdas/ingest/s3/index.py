@@ -263,7 +263,7 @@ def json_serialize(obj):
 @functools.lru_cache(maxsize=100)
 def get_type_abbreviation(asset_type: str) -> str:
     """Cache type mappings to reduce dict lookups"""
-    type_abbreviations = {"Image": "img", "Video": "vid", "Audio": "aud"}
+    type_abbreviations = {"Image": "img", "Video": "vid", "Audio": "aud", "Document": "doc"}
     return type_abbreviations.get(asset_type, "img")
 
 
@@ -288,11 +288,13 @@ def determine_asset_type(content_type: str, file_extension: str) -> str:
     image_mimes = ["image/", "application/photoshop", "application/illustrator"]
     video_mimes = ["video/"]
     audio_mimes = ["audio/"]
+    document_mimes = ["application/pdf"]
 
     # Use centralized extension lists from constants
     image_extensions = SUPPORTED_EXTENSIONS["Image"]
     video_extensions = SUPPORTED_EXTENSIONS["Video"]
     audio_extensions = SUPPORTED_EXTENSIONS["Audio"]
+    document_extensions = SUPPORTED_EXTENSIONS["Document"]
 
     # Check MIME type first as it's more reliable
     for prefix in image_mimes:
@@ -307,6 +309,10 @@ def determine_asset_type(content_type: str, file_extension: str) -> str:
         if content_type.startswith(prefix):
             return "Audio"
 
+    for mime in document_mimes:
+        if content_type == mime:
+            return "Document"
+
     # If MIME type doesn't give us a clear answer, check file extension
     if file_extension in image_extensions:
         return "Image"
@@ -316,6 +322,9 @@ def determine_asset_type(content_type: str, file_extension: str) -> str:
 
     if file_extension in audio_extensions:
         return "Audio"
+
+    if file_extension in document_extensions:
+        return "Document"
 
     # If we have a content type but no clear match, try to infer from the main type
     if content_type:

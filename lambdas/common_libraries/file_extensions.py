@@ -62,6 +62,9 @@ SUPPORTED_EXTENSIONS = {
         "pcm",  # Pulse-Code Modulation
         "m4a",  # MPEG-4 Audio
     ],
+    "Document": [
+        "pdf",  # Portable Document Format
+    ],
 }
 
 

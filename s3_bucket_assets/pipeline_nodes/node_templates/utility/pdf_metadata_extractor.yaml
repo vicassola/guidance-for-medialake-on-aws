@@ -1,0 +1,45 @@
+spec: v1.0.0
+node:
+  id: pdf_metadata_extractor
+  title: PDF Metadata Extractor
+  description: Extract metadata from PDF files stored in S3 (title, author, page count, creation date, PDF version, encryption status)
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/PdfMetadataExtractorLambdaDeployment
+        runtime: python3.12
+        timeout: 300
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - s3:GetObject
+              resources:
+                - arn:aws:s3:::*/*
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - kms:Decrypt
+              resources:
+                - ${MEDIA_ASSETS_BUCKET_ARN_KMS_KEY}
+
+actions:
+  extract:
+    summary: Extract PDF metadata
+    description: Extract metadata from a PDF file stored in S3 including title, author, page count, creation date, PDF version, and encryption status
+    operationId: extractPdfMetadata
+    parameters: []
+    x-requestMapping: processor/pdf_metadata_extractor/extract/
+    x-responseMapping: processor/pdf_metadata_extractor/extract/
+    connections:
+      incoming:
+        type: [document]
+      outgoing:
+        type: [metadata]

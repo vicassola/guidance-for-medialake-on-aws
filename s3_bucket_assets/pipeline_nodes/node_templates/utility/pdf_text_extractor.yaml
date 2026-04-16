@@ -1,0 +1,82 @@
+spec: v1.0.0
+node:
+  id: pdf_text_extractor
+  title: PDF Text Extractor
+  description: Extract text, tables, and form data from PDF files using Amazon Textract (supports both text-based and scanned PDFs)
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/PdfTextExtractorLambdaDeployment
+        runtime: python3.12
+        timeout: 900
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - s3:GetObject
+              resources:
+                - arn:aws:s3:::*/*
+            - effect: Allow
+              actions:
+                - s3:PutObject
+              resources:
+                - arn:aws:s3:::${MEDIA_ASSETS_BUCKET_NAME}/*
+            - effect: Allow
+              actions:
+                - textract:StartDocumentAnalysis
+                - textract:GetDocumentAnalysis
+              resources:
+                - "*"
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - kms:Decrypt
+                - kms:GenerateDataKey
+              resources:
+                - ${MEDIA_ASSETS_BUCKET_ARN_KMS_KEY}
+
+actions:
+  extract:
+    summary: Extract text from PDF
+    description: Start async Textract analysis to extract full text, tables, and form key-value pairs from a PDF stored in S3
+    operationId: startPdfTextExtraction
+    parameters:
+      - in: body
+        name: extract_tables
+        required: false
+        schema:
+          type: boolean
+          description: Whether to extract tables as structured JSON
+          default: true
+      - in: body
+        name: extract_forms
+        required: false
+        schema:
+          type: boolean
+          description: Whether to extract form key-value pairs
+          default: true
+    x-requestMapping: processor/pdf_text_extractor/extract/
+    x-responseMapping: processor/pdf_text_extractor/extract/
+    connections:
+      incoming:
+        type: [document, metadata]
+      outgoing:
+        type: [metadata]
+
+  status:
+    summary: Check Textract job status
+    description: Poll the status of an async Textract document analysis job and retrieve results when complete
+    operationId: getPdfTextExtractionStatus
+    parameters: []
+    connections:
+      incoming:
+        type: [any]
+      outgoing:
+        type: [metadata]

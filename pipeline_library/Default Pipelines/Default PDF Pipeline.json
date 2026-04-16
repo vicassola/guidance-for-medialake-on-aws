@@ -1,0 +1,317 @@
+{
+  "name": "Default PDF Pipeline",
+  "description": "",
+  "active": true,
+  "configuration": {
+    "nodes": [
+      {
+        "id": "dndnode_0",
+        "type": "custom",
+        "position": { "x": 336, "y": 96 },
+        "data": {
+          "nodeId": "trigger_ingest_completed",
+          "label": "Ingest Completed (trigger)",
+          "description": "This step will trigger after ingest is completed",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["any"],
+          "outputTypes": [{ "name": "any", "description": "Output type: any" }],
+          "type": "TRIGGER",
+          "configuration": {
+            "method": "trigger",
+            "parameters": {
+              "Max Concurrent Executions": 100,
+              "Prefix": "",
+              "Format": "PDF"
+            },
+            "path": "",
+            "operationId": "",
+            "requestMapping": null,
+            "responseMapping": null
+          }
+        },
+        "width": 200,
+        "height": 100
+      },
+      {
+        "id": "dndnode_1",
+        "type": "custom",
+        "position": { "x": 336, "y": 256 },
+        "data": {
+          "nodeId": "pdf_metadata_extractor",
+          "label": "PDF Metadata Extractor (extract)",
+          "description": "Extract metadata from a PDF file stored in S3",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["document"],
+          "outputTypes": [{ "name": "metadata", "description": "Output type: metadata" }],
+          "type": "UTILITY",
+          "configuration": {
+            "method": "extract",
+            "operationId": "extractPdfMetadata",
+            "parameters": {},
+            "path": "",
+            "requestMapping": null,
+            "responseMapping": null
+          }
+        },
+        "width": 200,
+        "height": 100
+      },
+      {
+        "id": "dndnode_2",
+        "type": "custom",
+        "position": { "x": 336, "y": 416 },
+        "data": {
+          "nodeId": "pdf_text_extractor",
+          "label": "PDF Text Extractor (extract)",
+          "description": "Start async Textract analysis to extract text, tables, and forms from a PDF",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["document", "metadata"],
+          "outputTypes": [{ "name": "metadata", "description": "Output type: metadata" }],
+          "type": "UTILITY",
+          "configuration": {
+            "method": "extract",
+            "operationId": "startPdfTextExtraction",
+            "parameters": {
+              "extract_tables": true,
+              "extract_forms": true
+            },
+            "path": "",
+            "requestMapping": null,
+            "responseMapping": null
+          }
+        },
+        "width": 200,
+        "height": 100
+      },
+      {
+        "id": "dndnode_3",
+        "type": "custom",
+        "position": { "x": 336, "y": 576 },
+        "data": {
+          "nodeId": "pdf_text_extractor",
+          "label": "PDF Text Extractor (status)",
+          "description": "Poll Textract job status and retrieve results when complete",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["any"],
+          "outputTypes": [{ "name": "metadata", "description": "Output type: metadata" }],
+          "type": "UTILITY",
+          "configuration": {
+            "method": "status",
+            "operationId": "getPdfTextExtractionStatus",
+            "parameters": {},
+            "path": "",
+            "requestMapping": null,
+            "responseMapping": null
+          }
+        },
+        "width": 200,
+        "height": 100
+      },
+      {
+        "id": "dndnode_4",
+        "type": "custom",
+        "position": { "x": 336, "y": 736 },
+        "data": {
+          "nodeId": "choice",
+          "label": "Choice",
+          "description": "Branch based on Textract job status",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["any"],
+          "outputTypes": [
+            { "name": "Completed", "description": "Path taken when Textract job is complete" },
+            { "name": "In Progress", "description": "Path taken when Textract job is still running" },
+            { "name": "Fail", "description": "Path taken when Textract job failed" }
+          ],
+          "type": "FLOW",
+          "configuration": {
+            "method": "choice",
+            "parameters": {}
+          }
+        },
+        "width": 200,
+        "height": 113
+      },
+      {
+        "id": "dndnode_5",
+        "type": "custom",
+        "position": { "x": 608, "y": 736 },
+        "data": {
+          "nodeId": "wait",
+          "label": "Wait 30 Seconds",
+          "description": "Wait before polling Textract status again",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["any"],
+          "outputTypes": [{ "name": "wait_complete", "description": "Wait completed" }],
+          "type": "FLOW",
+          "configuration": {
+            "method": "wait",
+            "parameters": { "seconds": "30" }
+          }
+        },
+        "width": 200,
+        "height": 113
+      },
+      {
+        "id": "dndnode_6",
+        "type": "custom",
+        "position": { "x": 64, "y": 736 },
+        "data": {
+          "nodeId": "pdf_embedding",
+          "label": "PDF Embedding (embed)",
+          "description": "Generate semantic embeddings from extracted PDF text using Amazon Bedrock Titan Embeddings",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["any"],
+          "outputTypes": [{ "name": "any", "description": "Output type: any" }],
+          "type": "UTILITY",
+          "configuration": {
+            "method": "embed",
+            "operationId": "generatePdfEmbeddings",
+            "parameters": {
+              "chunk_size": 8000,
+              "chunk_overlap": 200,
+              "index_name": "asset-embeddings"
+            },
+            "path": "",
+            "requestMapping": null,
+            "responseMapping": null
+          }
+        },
+        "width": 200,
+        "height": 113
+      },
+      {
+        "id": "dndnode_7",
+        "type": "custom",
+        "position": { "x": 64, "y": 896 },
+        "data": {
+          "nodeId": "success",
+          "label": "Success",
+          "description": "This step will end the execution with a success status",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["any"],
+          "outputTypes": [],
+          "type": "FLOW",
+          "configuration": {
+            "method": "success",
+            "parameters": {}
+          }
+        },
+        "width": 200,
+        "height": 113
+      },
+      {
+        "id": "dndnode_8",
+        "type": "custom",
+        "position": { "x": 336, "y": 896 },
+        "data": {
+          "nodeId": "fail",
+          "label": "Fail",
+          "description": "This step will end the state machine execution with a failure status",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["any"],
+          "outputTypes": [],
+          "type": "FLOW",
+          "configuration": {
+            "method": "fail",
+            "parameters": {
+              "Error": "TextractFailed",
+              "Cause": "Textract document analysis job failed"
+            },
+            "path": "",
+            "operationId": ""
+          }
+        },
+        "width": 200,
+        "height": 113
+      }
+    ],
+    "edges": [
+      {
+        "id": "dndnode_0-dndnode_1",
+        "source": "dndnode_0",
+        "target": "dndnode_1",
+        "type": "custom",
+        "data": { "type": "custom", "text": "Connected", "id": "dndnode_0-dndnode_1" },
+        "sourceHandle": "any",
+        "targetHandle": "input-document"
+      },
+      {
+        "id": "dndnode_1-dndnode_2",
+        "source": "dndnode_1",
+        "target": "dndnode_2",
+        "type": "custom",
+        "data": { "type": "custom", "text": "Connected", "id": "dndnode_1-dndnode_2" },
+        "sourceHandle": "metadata",
+        "targetHandle": "input-metadata"
+      },
+      {
+        "id": "dndnode_2-dndnode_3",
+        "source": "dndnode_2",
+        "target": "dndnode_3",
+        "type": "custom",
+        "data": { "type": "custom", "text": "Connected", "id": "dndnode_2-dndnode_3" },
+        "sourceHandle": "metadata",
+        "targetHandle": "input-any"
+      },
+      {
+        "id": "dndnode_3-dndnode_4",
+        "source": "dndnode_3",
+        "target": "dndnode_4",
+        "type": "custom",
+        "data": { "text": "Connected" },
+        "sourceHandle": "metadata",
+        "targetHandle": "input-any"
+      },
+      {
+        "id": "dndnode_4-dndnode_6",
+        "source": "dndnode_4",
+        "target": "dndnode_6",
+        "type": "custom",
+        "data": { "text": "Connected" },
+        "sourceHandle": "Completed",
+        "targetHandle": "input-any"
+      },
+      {
+        "id": "dndnode_4-dndnode_5",
+        "source": "dndnode_4",
+        "target": "dndnode_5",
+        "type": "custom",
+        "data": { "text": "Connected" },
+        "sourceHandle": "In Progress",
+        "targetHandle": "input-any"
+      },
+      {
+        "id": "dndnode_4-dndnode_8",
+        "source": "dndnode_4",
+        "target": "dndnode_8",
+        "type": "custom",
+        "data": { "text": "Connected" },
+        "sourceHandle": "Fail",
+        "targetHandle": "input-any"
+      },
+      {
+        "id": "dndnode_5-dndnode_3",
+        "source": "dndnode_5",
+        "target": "dndnode_3",
+        "type": "custom",
+        "data": { "text": "Connected" },
+        "sourceHandle": "wait_complete",
+        "targetHandle": "input-any"
+      },
+      {
+        "id": "dndnode_6-dndnode_7",
+        "source": "dndnode_6",
+        "target": "dndnode_7",
+        "type": "custom",
+        "data": { "text": "Connected" },
+        "sourceHandle": "any",
+        "targetHandle": "input-any"
+      }
+    ],
+    "settings": {
+      "autoStart": false,
+      "retryAttempts": 3,
+      "timeout": 3600
+    }
+  }
+}
