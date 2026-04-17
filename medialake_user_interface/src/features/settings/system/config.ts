@@ -29,6 +29,13 @@ export const SYSTEM_SETTINGS_CONFIG = {
       defaultEndpoint: "https://app.coactive.ai/api/v1/search",
       requiresApiKey: true,
     },
+    TITAN_BEDROCK: {
+      id: "titan-bedrock",
+      name: "Amazon Titan Embeddings v2 (PDF Documents)",
+      type: "titan-bedrock",
+      requiresApiKey: false,
+      dimensions: [1024],
+    },
   },
   EMBEDDING_STORES: {
     OPENSEARCH: {

@@ -432,6 +432,7 @@ def register_route(app):
                 is_bedrock = updated_provider.get("type") in [
                     "twelvelabs-bedrock",
                     "twelvelabs-bedrock-3-0",
+                    "titan-bedrock",
                 ]
                 updated_provider["isConfigured"] = has_secret or is_bedrock
 

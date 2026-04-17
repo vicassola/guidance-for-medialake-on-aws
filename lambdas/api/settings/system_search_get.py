@@ -55,6 +55,16 @@ PROVIDER_METADATA = {
         "supportedMediaTypes": ["image", "video"],
         "inference_provider": "coactive_api",
     },
+    "titan-bedrock": {
+        "id": "titan-bedrock",
+        "name": "Amazon Titan Embeddings v2 (PDF Documents)",
+        "type": "titan-bedrock",
+        "requiresApiKey": False,
+        "isExternal": False,
+        "supportedMediaTypes": ["document"],
+        "dimensions": [1024],
+        "inference_provider": "aws_bedrock",
+    },
 }
 
 # Embedding store metadata
@@ -106,6 +116,7 @@ def register_route(app):
                 is_bedrock = original_item.get("type") in [
                     "twelvelabs-bedrock",
                     "twelvelabs-bedrock-3-0",
+                    "titan-bedrock",
                 ]
 
                 search_provider["isConfigured"] = has_secret or is_bedrock

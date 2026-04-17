@@ -104,6 +104,8 @@ class SearchConstruct(Construct):
                         if props.connector_table
                         else {}
                     ),
+                    # Asset table for enriching Titan/document search results
+                    "MEDIALAKE_ASSET_TABLE": props.asset_table.table_name,
                 },
             ),
         )
@@ -338,6 +340,9 @@ class SearchConstruct(Construct):
                 },
             )
         )
+
+        # Grant read access to asset table for Titan/document search result enrichment
+        props.asset_table.grant_read_data(search_get_lambda.function)
 
         search_get = search_resource.add_method(
             "GET",

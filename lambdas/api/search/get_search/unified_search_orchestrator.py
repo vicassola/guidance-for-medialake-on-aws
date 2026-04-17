@@ -17,6 +17,7 @@ import boto3
 from bedrock_twelvelabs_search_provider import BedrockTwelveLabsSearchProvider
 from coactive_search_provider import CoactiveSearchProvider
 from search_provider_models import DEFAULT_PAGE_SIZE
+from titan_bedrock_search_provider import TitanBedrockSearchProvider
 from twelvelabs_api_search_provider import TwelveLabsAPISearchProvider
 from unified_search_models import (
     SearchArchitectureType,
@@ -42,6 +43,8 @@ PROVIDER_INDEX_MAPPING = {
     "twelvelabs-bedrock-3-0": "ASSET_EMBEDDINGS_INDEX",
     # Coactive uses the 'media' index
     "coactive": "OPENSEARCH_INDEX",
+    # Titan Embeddings (PDF documents) uses the 'asset-embeddings' index
+    "titan-bedrock": "ASSET_EMBEDDINGS_INDEX",
 }
 
 
@@ -70,6 +73,9 @@ class UnifiedSearchOrchestrator:
         )
         self.provider_factory.register_provider(
             "twelvelabs_api", TwelveLabsAPISearchProvider
+        )
+        self.provider_factory.register_provider(
+            "titan_bedrock", TitanBedrockSearchProvider
         )
         self.logger.info("Registered search provider classes")
 
@@ -290,6 +296,26 @@ class UnifiedSearchOrchestrator:
                     self.logger.info(
                         f"[INDEX ROUTING] TwelveLabs API provider '{provider_type}' "
                         f"configured to query index: '{target_index}'"
+                    )
+                elif provider_type == "titan-bedrock":
+                    target_index = self._get_target_index_for_provider(provider_type)
+                    provider_config = {
+                        "provider": "titan_bedrock",
+                        "provider_location": "internal",
+                        "architecture": "provider_plus_store",
+                        "capabilities": {
+                            "media": ["document"],
+                            "semantic": True,
+                        },
+                        "store": embedding_store,
+                        "name": item.get("name", "Amazon Titan Embeddings v2 (PDF Documents)"),
+                        "id": item.get("id"),
+                        "type": provider_type,
+                        "dimensions": item.get("dimensions", 1024),
+                        "target_index": target_index,
+                    }
+                    self.logger.info(
+                        f"[INDEX ROUTING] Titan Bedrock provider configured to query index: '{target_index}'"
                     )
                 else:
                     # For unknown types, try to infer from the type string

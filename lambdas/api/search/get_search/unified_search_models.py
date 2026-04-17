@@ -139,6 +139,7 @@ class MediaType(Enum):
     VIDEO = "video"
     AUDIO = "audio"
     IMAGE = "image"
+    DOCUMENT = "document"
     ALL = "all"
 
 

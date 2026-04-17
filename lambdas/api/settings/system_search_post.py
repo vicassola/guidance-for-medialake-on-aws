@@ -248,6 +248,21 @@ def register_route(app):
             if "dimensions" in body:
                 search_provider["dimensions"] = body["dimensions"]
 
+            # For titan-bedrock, inject the orchestrator fields needed to
+            # instantiate TitanBedrockSearchProvider at search time.
+            if body.get("type") == "titan-bedrock":
+                search_provider["provider"] = "titan_bedrock"
+                search_provider["provider_location"] = "internal"
+                search_provider["architecture"] = "provider_plus_store"
+                search_provider["capabilities"] = {
+                    "media": ["document"],
+                    "semantic": True,
+                }
+                search_provider["dimensions"] = 1024
+                search_provider["target_index"] = os.environ.get(
+                    "ASSET_EMBEDDINGS_INDEX", "asset-embeddings"
+                )
+
             # Only override isEnabled if explicitly provided in request
             if "isEnabled" in body:
                 search_provider["isEnabled"] = body["isEnabled"]
@@ -338,7 +353,7 @@ def register_route(app):
             # Provider is configured if it has a secret ARN or if it's Bedrock (which doesn't need one)
             response_provider["isConfigured"] = bool(secret_arn) or body.get(
                 "type"
-            ) in ["twelvelabs-bedrock", "twelvelabs-bedrock-3-0"]
+            ) in ["twelvelabs-bedrock", "twelvelabs-bedrock-3-0", "titan-bedrock"]
 
             # Prepare response
             return {
