@@ -199,6 +199,15 @@ export const router = createBrowserRouter([
           />
         ),
       },
+      {
+        path: "documents/:id",
+        element: (
+          <RoutePermissionGuard
+            permission={{ action: "view", subject: "asset" }}
+            element={LazyImageDetailPage}
+          />
+        ),
+      },
       { path: "settings/profile", element: LazyProfilePage },
       {
         path: "settings/connectors",

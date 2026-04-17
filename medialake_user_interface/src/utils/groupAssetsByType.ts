@@ -5,7 +5,7 @@ export function groupAssetsByType<T>(
   return items.reduce<Record<string, T[]>>((acc, item) => {
     const raw = getType(item).toLowerCase();
     const key =
-      raw === "image" ? "Image" : raw === "video" ? "Video" : raw === "audio" ? "Audio" : "Other";
+      raw === "image" ? "Image" : raw === "video" ? "Video" : raw === "audio" ? "Audio" : raw === "document" ? "Document" : "Other";
     (acc[key] ??= []).push(item);
     return acc;
   }, {});

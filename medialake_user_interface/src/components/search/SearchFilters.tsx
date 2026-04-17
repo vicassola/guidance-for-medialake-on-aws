@@ -20,6 +20,7 @@ const filterLabels = {
   videos: "Videos",
   images: "Images",
   audio: "Audio",
+  documents: "Documents",
 };
 
 interface FiltersState {
@@ -27,6 +28,7 @@ interface FiltersState {
     videos: boolean;
     images: boolean;
     audio: boolean;
+    documents: boolean;
   };
   time: {
     recent: boolean;

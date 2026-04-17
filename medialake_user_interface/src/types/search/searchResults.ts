@@ -96,3 +96,21 @@ export interface AudioItem extends AssetBase {
     };
   };
 }
+
+export interface DocumentItem extends AssetBase {
+  DigitalSourceAsset: DigitalSourceAsset & {
+    Type: "Document";
+    MainRepresentation: {
+      Format: string;
+      StorageInfo: {
+        PrimaryLocation: {
+          ObjectKey: {
+            Name: string;
+            FullPath: string;
+          };
+          FileInfo: { Size: number };
+        };
+      };
+    };
+  };
+}

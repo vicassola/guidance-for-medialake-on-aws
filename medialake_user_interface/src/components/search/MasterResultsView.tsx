@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { type ImageItem, type VideoItem, type AudioItem } from "@/types/search/searchResults";
+import { type ImageItem, type VideoItem, type AudioItem, type DocumentItem } from "@/types/search/searchResults";
 import { type SortingState } from "@tanstack/react-table";
 import { type AssetTableColumn } from "@/types/shared/assetComponents";
 import { formatFileSize } from "@/utils/fileSize";
@@ -16,7 +16,7 @@ import {
 import { useSemanticMode } from "@/stores/searchStore";
 import { useSemanticSearchStatus } from "@/features/settings/system/hooks/useSystemSettings";
 
-type AssetItem = (ImageItem | VideoItem | AudioItem) & {
+type AssetItem = (ImageItem | VideoItem | AudioItem | DocumentItem) & {
   DigitalSourceAsset: {
     Type: string;
   };

@@ -125,7 +125,7 @@ export const FavoritesWidget: React.FC<BaseWidgetProps> = ({ widgetId, isExpande
   const handleAssetClick = useCallback(
     (assetId: string, assetType: string) => {
       const pathPrefix =
-        assetType.toLowerCase() === "audio" ? "/audio/" : `/${assetType.toLowerCase()}s/`;
+        assetType.toLowerCase() === "audio" ? "/audio/" : assetType.toLowerCase() === "document" ? "/documents/" : `/${assetType.toLowerCase()}s/`;
       const originalAssetId = getOriginalAssetId({ InventoryID: assetId });
       navigate(`${pathPrefix}${originalAssetId}`, {
         state: {

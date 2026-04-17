@@ -323,7 +323,7 @@ const AssetExplorer: React.FC<AssetExplorerProps> = ({ connectorId, bucketName }
     (asset: AssetItem) => {
       const assetType = asset.DigitalSourceAsset.Type.toLowerCase();
       // Special case for audio to use singular form
-      const pathPrefix = assetType === "audio" ? "/audio/" : `/${assetType}s/`;
+      const pathPrefix = assetType === "audio" ? "/audio/" : assetType === "document" ? "/documents/" : `/${assetType}s/`;
       // Always use the original asset ID, not the clip ID
       const originalAssetId = getOriginalAssetId(asset);
       navigate(`${pathPrefix}${originalAssetId}`, {

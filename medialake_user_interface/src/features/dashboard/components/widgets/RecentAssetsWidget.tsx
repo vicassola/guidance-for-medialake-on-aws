@@ -24,9 +24,9 @@ import { AddToCollectionModal } from "@/components/collections/AddToCollectionMo
 import ApiStatusModal from "@/components/ApiStatusModal";
 import { useDashboardSelection } from "../../contexts/DashboardSelectionContext";
 import type { BaseWidgetProps } from "../../types";
-import type { ImageItem, VideoItem, AudioItem } from "@/types/search/searchResults";
+import type { ImageItem, VideoItem, AudioItem, DocumentItem } from "@/types/search/searchResults";
 
-type AssetItem = ImageItem | VideoItem | AudioItem;
+type AssetItem = ImageItem | VideoItem | AudioItem | DocumentItem;
 
 // Helper to safely extract asset properties from the nested structure
 const getAssetName = (asset: any): string => {
@@ -145,6 +145,8 @@ export const RecentAssetsWidget: React.FC<BaseWidgetProps> = ({ widgetId, isExpa
       const pathPrefix =
         assetType?.toLowerCase() === "audio"
           ? "/audio/"
+          : assetType?.toLowerCase() === "document"
+          ? "/documents/"
           : `/${assetType?.toLowerCase() || "image"}s/`;
       const originalAssetId = getOriginalAssetId({ InventoryID: assetId });
       navigate(`${pathPrefix}${originalAssetId}`, {

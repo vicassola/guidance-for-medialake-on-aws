@@ -26,7 +26,7 @@ import { zIndexTokens } from "@/theme/tokens";
 import { useSearch } from "../api/hooks/useSearch";
 import { useSearchFields } from "../api/hooks/useSearchFields";
 import { useAssetOperations } from "@/hooks/useAssetOperations";
-import { type ImageItem, type VideoItem, type AudioItem } from "@/types/search/searchResults";
+import { type ImageItem, type VideoItem, type AudioItem, type DocumentItem } from "@/types/search/searchResults";
 import { type CellContext } from "@tanstack/react-table";
 import { type AssetTableColumn } from "@/types/shared/assetComponents";
 import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
@@ -38,7 +38,7 @@ import { useViewPreferences } from "@/hooks/useViewPreferences";
 import { useAssetSelection } from "@/hooks/useAssetSelection";
 import { useAssetFavorites } from "@/hooks/useAssetFavorites";
 
-type AssetItem = (ImageItem | VideoItem | AudioItem) & {
+type AssetItem = (ImageItem | VideoItem | AudioItem | DocumentItem) & {
   DigitalSourceAsset: {
     Type: string;
   };
@@ -215,6 +215,7 @@ const SearchPage: React.FC = () => {
       videos: true,
       images: true,
       audio: true,
+      documents: true,
     },
     time: {
       recent: false,
@@ -285,7 +286,7 @@ const SearchPage: React.FC = () => {
     (asset: AssetItem) => {
       const assetType = asset.DigitalSourceAsset.Type.toLowerCase();
       // Special case for audio to use singular form
-      const pathPrefix = assetType === "audio" ? "/audio/" : `/${assetType}s/`;
+      const pathPrefix = assetType === "audio" ? "/audio/" : assetType === "document" ? "/documents/" : `/${assetType}s/`;
       // Always use the original asset ID, not the clip ID
       const originalAssetId = getOriginalAssetId(asset);
       navigate(`${pathPrefix}${originalAssetId}`, {
@@ -457,6 +458,7 @@ const SearchPage: React.FC = () => {
         const isImage = item.DigitalSourceAsset.Type === "Image" && filters.mediaTypes.images;
         const isVideo = item.DigitalSourceAsset.Type === "Video" && filters.mediaTypes.videos;
         const isAudio = item.DigitalSourceAsset.Type === "Audio" && filters.mediaTypes.audio;
+        const isDocument = item.DigitalSourceAsset.Type === "Document" && filters.mediaTypes.documents;
 
         // Time-based filtering
         const createdAt = new Date(item.DigitalSourceAsset.CreateDate);
@@ -477,7 +479,7 @@ const SearchPage: React.FC = () => {
           isLastMonth ||
           isLastYear;
 
-        return (isImage || isVideo || isAudio) && passesTimeFilter;
+        return (isImage || isVideo || isAudio || isDocument) && passesTimeFilter;
       }) ?? [],
     [searchResults, filters]
   );

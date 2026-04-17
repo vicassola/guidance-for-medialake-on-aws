@@ -328,7 +328,7 @@ class SearchProviderConfigManager:
             if not isinstance(media_types, list):
                 errors.append("capabilities.media must be a list")
             else:
-                valid_media_types = ["video", "audio", "image"]
+                valid_media_types = ["video", "audio", "image", "document"]
                 for media_type in media_types:
                     if media_type not in valid_media_types:
                         errors.append(f"Invalid media type: {media_type}")
