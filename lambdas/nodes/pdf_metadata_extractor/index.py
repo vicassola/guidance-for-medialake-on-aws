@@ -40,6 +40,7 @@ def _to_decimal(obj: Any) -> Any:
     Booleans are intentionally left as-is (DynamoDB supports bool natively).
     Integers are left as-is (boto3 handles them without Decimal).
     Only floats need conversion to avoid DynamoDB's rejection of float types.
+    Anything else (strings, None, unknown objects) is returned unchanged.
     """
     if isinstance(obj, bool):
         # Must check bool before int — bool is a subclass of int in Python
@@ -50,7 +51,37 @@ def _to_decimal(obj: Any) -> Any:
         return {k: _to_decimal(v) for k, v in obj.items()}
     if isinstance(obj, list):
         return [_to_decimal(v) for v in obj]
+    # str, int, None, Decimal, and any other type — pass through unchanged
     return obj
+
+
+def _sanitize_for_dynamo(obj: Any) -> Any:
+    """
+    Recursively coerce all values to plain Python types safe for DynamoDB.
+
+    pypdf returns subclasses like NameObject, TextStringObject, ByteStringObject
+    that boto3 doesn't recognise. This walks the structure and forces everything
+    to a primitive: str, int, float, bool, None, list, or dict.
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, bool):
+        return obj
+    if isinstance(obj, int):
+        return obj
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    if isinstance(obj, Decimal):
+        return obj
+    if isinstance(obj, dict):
+        return {str(k): _sanitize_for_dynamo(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_dynamo(v) for v in obj]
+    # Catch-all: stringify anything else (pypdf NameObject, TextStringObject, etc.)
+    try:
+        return str(obj)
+    except Exception:
+        return None
 
 
 def _strip_decimals(obj: Any) -> Any:
@@ -162,7 +193,9 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
             .get("Metadata", {})
             .get("EmbeddedMetadata", {})
         )
-        merged = {**existing, "pdf": _to_decimal(pdf_meta)}
+        # _sanitize_for_dynamo coerces all pypdf subclass objects to plain
+        # Python primitives and converts floats to Decimal for DynamoDB.
+        merged = {**existing, "pdf": _sanitize_for_dynamo(pdf_meta)}
 
         dynamo.update_item(
             Key={"InventoryID": inv_id},
