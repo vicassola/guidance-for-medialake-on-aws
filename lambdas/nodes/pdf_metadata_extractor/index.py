@@ -35,10 +35,16 @@ def clean_asset_id(raw: str) -> str:
 
 
 def _to_decimal(obj: Any) -> Any:
-    """Recursively convert floats/ints to Decimal for DynamoDB storage."""
+    """Recursively convert floats to Decimal for DynamoDB storage.
+
+    Booleans are intentionally left as-is (DynamoDB supports bool natively).
+    Integers are left as-is (boto3 handles them without Decimal).
+    Only floats need conversion to avoid DynamoDB's rejection of float types.
+    """
+    if isinstance(obj, bool):
+        # Must check bool before int — bool is a subclass of int in Python
+        return obj
     if isinstance(obj, float):
-        return Decimal(str(obj))
-    if isinstance(obj, int):
         return Decimal(str(obj))
     if isinstance(obj, dict):
         return {k: _to_decimal(v) for k, v in obj.items()}
