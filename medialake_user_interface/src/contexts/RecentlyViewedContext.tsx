@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 export interface RecentlyViewedItem {
   id: string;
   title: string;
-  type: "video" | "image" | "audio";
+  type: "video" | "image" | "audio" | "document";
   timestamp: Date;
   path: string;
   searchTerm: string;
@@ -56,7 +56,9 @@ export const RecentlyViewedProvider: React.FC<{
 
             // Migrate old paths that use /assets/ to new type-based paths
             if (newItem.path.startsWith("/assets/")) {
-              newItem.path = `/${newItem.type}s/${newItem.path.split("/").pop()}`;
+              const suffix = newItem.path.split("/").pop();
+              const prefix = newItem.type === "audio" ? "/audio/" : newItem.type === "document" ? "/documents/" : `/${newItem.type}s/`;
+              newItem.path = `${prefix}${suffix}`;
             }
 
             return newItem;
@@ -65,7 +67,7 @@ export const RecentlyViewedProvider: React.FC<{
             (item: any) =>
               item.id &&
               item.title &&
-              (item.type === "video" || item.type === "image" || item.type === "audio") &&
+              (item.type === "video" || item.type === "image" || item.type === "audio" || item.type === "document") &&
               item.path
           )
           .slice(0, MAX_ITEMS);
@@ -91,7 +93,8 @@ export const RecentlyViewedProvider: React.FC<{
       const filteredItems = currentItems.filter((item) => item.id !== newItem.id);
 
       // Ensure path uses the correct format
-      const path = newItem.path.startsWith("/") ? newItem.path : `/${newItem.type}s/${newItem.id}`;
+      const typePrefix = newItem.type === "audio" ? "/audio/" : newItem.type === "document" ? "/documents/" : `/${newItem.type}s/`;
+      const path = newItem.path.startsWith("/") ? newItem.path : `${typePrefix}${newItem.id}`;
 
       // Add new item at the beginning with current timestamp
       const updatedItems = [

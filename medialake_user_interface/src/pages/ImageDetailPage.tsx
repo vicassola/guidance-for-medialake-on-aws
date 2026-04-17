@@ -254,7 +254,7 @@ const ImageDetailContent: React.FC = () => {
     return {
       id,
       title: asset.DigitalSourceAsset.MainRepresentation.StorageInfo.PrimaryLocation.ObjectKey.Name,
-      type: asset.DigitalSourceAsset.Type.toLowerCase() as "video" | "image" | "audio",
+      type: asset.DigitalSourceAsset.Type.toLowerCase() as "video" | "image" | "audio" | "document",
       path: location.pathname,
       searchTerm: "",
       metadata: {

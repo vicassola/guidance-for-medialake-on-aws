@@ -39,6 +39,7 @@ ALLOWED_CONTENT_TYPES = [
     "audio/*",
     "video/*",
     "image/*",
+    "application/pdf",
     "application/x-mpegURL",  # HLS
     "application/dash+xml",  # MPEG-DASH
 ]

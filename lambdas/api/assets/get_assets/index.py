@@ -66,7 +66,7 @@ def decode_pagination_token(token: str) -> Dict:
 @tracer.capture_method
 def build_query_params(params: QueryParams) -> Dict[str, Any]:
     """Build DynamoDB query parameters based on request parameters."""
-    key_condition = Key("DigitalSourceAsset.ID").begins_with("asset:img:")
+    key_condition = Key("DigitalSourceAsset.ID").begins_with("asset:")
 
     query_params = {
         "IndexName": os.getenv("AssetIDIndex"),
