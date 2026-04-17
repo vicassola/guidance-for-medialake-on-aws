@@ -245,7 +245,9 @@ export const useAsset = (inventoryId: string) => {
     queryKey: QUERY_KEYS.ASSETS.detail(inventoryId),
     queryFn: async () => {
       try {
-        const response = await apiClient.get<AssetResponse>(`assets/${inventoryId}`);
+        const response = await apiClient.get<AssetResponse>(
+          `assets/${encodeURIComponent(inventoryId)}`
+        );
         return response.data;
       } catch (error) {
         logger.error("Error fetching asset details:", error);

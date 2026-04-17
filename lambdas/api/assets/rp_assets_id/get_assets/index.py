@@ -392,7 +392,7 @@ def enrich_asset_data(asset: Dict[str, Any]) -> Dict[str, Any]:
         proxy_url = get_url_for_purpose(asset, "proxy")
 
         # Add URLs to their respective DerivedRepresentations
-        for rep in asset.get("DerivedRepresentations", []):
+        for rep in asset.get("DerivedRepresentations") or []:
             if rep.get("Purpose") == "thumbnail" and thumbnail_url:
                 rep["URL"] = thumbnail_url
             elif rep.get("Purpose") == "proxy" and proxy_url:
@@ -401,8 +401,8 @@ def enrich_asset_data(asset: Dict[str, Any]) -> Dict[str, Any]:
         # Add computed fields
         asset["DigitalSourceAsset"]["ComputedFields"] = {
             "TotalSize": sum(
-                rep["StorageInfo"]["PrimaryLocation"]["FileInfo"].get("Size", 0)
-                for rep in asset.get("DerivedRepresentations", [])
+                rep.get("StorageInfo", {}).get("PrimaryLocation", {}).get("FileInfo", {}).get("Size", 0)
+                for rep in asset.get("DerivedRepresentations") or []
             )
             + asset["DigitalSourceAsset"]["MainRepresentation"]["StorageInfo"][
                 "PrimaryLocation"

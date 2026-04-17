@@ -185,7 +185,7 @@ const ImageDetailContent: React.FC = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("summary");
   const [relatedPage, setRelatedPage] = useState(1);
-  const { data: assetData, isLoading: isLoadingAsset } = useAsset(id || "");
+  const { data: assetData, isLoading: isLoadingAsset, isError: isAssetError } = useAsset(id || "");
   const { data: relatedVersionsData, isLoading: isLoadingRelated } = useRelatedVersions(
     id || "",
     relatedPage
@@ -316,18 +316,20 @@ const ImageDetailContent: React.FC = () => {
 
   const versions = useMemo(() => {
     if (!assetData?.data?.asset) return [];
+    const asset = assetData.data.asset;
+    const derived = asset.DerivedRepresentations ?? [];
     return [
       {
-        id: assetData.data.asset.DigitalSourceAsset.MainRepresentation.ID,
-        src: assetData.data.asset.DigitalSourceAsset.MainRepresentation.StorageInfo.PrimaryLocation
+        id: asset.DigitalSourceAsset.MainRepresentation.ID,
+        src: asset.DigitalSourceAsset.MainRepresentation.StorageInfo.PrimaryLocation
           .ObjectKey.FullPath,
         type: "Original",
-        format: assetData.data.asset.DigitalSourceAsset.MainRepresentation.Format,
+        format: asset.DigitalSourceAsset.MainRepresentation.Format,
         fileSize:
-          assetData.data.asset.DigitalSourceAsset.MainRepresentation.StorageInfo.PrimaryLocation.FileInfo.Size.toString(),
+          asset.DigitalSourceAsset.MainRepresentation.StorageInfo.PrimaryLocation.FileInfo.Size.toString(),
         description: "Original high resolution version",
       },
-      ...assetData.data.asset.DerivedRepresentations.map((rep) => ({
+      ...derived.map((rep) => ({
         id: rep.ID,
         src: rep.StorageInfo.PrimaryLocation.ObjectKey.FullPath,
         type: rep.Purpose,
@@ -346,9 +348,8 @@ const ImageDetailContent: React.FC = () => {
 
   const proxyUrl = useMemo(() => {
     if (!assetData?.data?.asset) return "";
-    const proxyRep = assetData.data.asset.DerivedRepresentations.find(
-      (rep) => rep.Purpose === "proxy"
-    );
+    const derived = assetData.data.asset.DerivedRepresentations ?? [];
+    const proxyRep = derived.find((rep) => rep.Purpose === "proxy");
     return (
       proxyRep?.URL ||
       assetData.data.asset.DigitalSourceAsset.MainRepresentation.StorageInfo.PrimaryLocation
@@ -416,7 +417,7 @@ const ImageDetailContent: React.FC = () => {
     );
   }
 
-  if (!assetData) {
+  if (isAssetError || !assetData) {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" color="error">
