@@ -566,6 +566,36 @@ const SystemSettingsPage: React.FC = () => {
                               </Typography>
                             </Box>
                           </MenuItem>
+                          <MenuItem value="titan-bedrock">
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 0.5,
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Typography>
+                                  {SYSTEM_SETTINGS_CONFIG.PROVIDERS.TITAN_BEDROCK.name}
+                                </Typography>
+                                <Chip
+                                  label={t("settings.systemSettings.search.internal", "Internal")}
+                                  size="small"
+                                  color="success"
+                                  sx={{ height: 20, fontSize: "0.7rem" }}
+                                />
+                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Supports: PDF Documents • 1024D embeddings
+                              </Typography>
+                            </Box>
+                          </MenuItem>
                         </Select>
                       </FormControl>
                       {(settings.provider.type === "twelvelabs-api" ||

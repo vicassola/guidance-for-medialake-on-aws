@@ -276,6 +276,7 @@ class SearchConstruct(Construct):
         )
 
         # Add Bedrock InvokeModel permissions for TwelveLabs embedding generation (both 2.7 and 3.0)
+        # and Amazon Titan Embeddings v2 for PDF document search
         # Using system-defined cross-Region inference profiles
         search_get_lambda.function.add_to_role_policy(
             iam.PolicyStatement(
@@ -287,6 +288,8 @@ class SearchConstruct(Construct):
                     # Foundation model ARNs - required for InvokeModel calls (both 2.7 and 3.0)
                     "arn:aws:bedrock:*::foundation-model/twelvelabs.marengo-embed-2-7-v1:0",
                     "arn:aws:bedrock:*::foundation-model/twelvelabs.marengo-embed-3-0-v1:0",
+                    # Amazon Titan Embeddings v2 for PDF document semantic search
+                    "arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v2:0",
                     # System-defined cross-Region inference profiles for TwelveLabs Marengo (all regions, both versions)
                     "arn:aws:bedrock:*:*:inference-profile/us.twelvelabs.marengo-embed-2-7-v1:0",
                     "arn:aws:bedrock:*:*:inference-profile/us.twelvelabs.marengo-embed-3-0-v1:0",

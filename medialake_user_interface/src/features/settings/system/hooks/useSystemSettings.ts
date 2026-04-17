@@ -100,7 +100,9 @@ export const useSemanticSearchSettings = () => {
               ? "coactive"
               : fetchedProvider.type === "twelvelabs-api"
                 ? "twelvelabs-api"
-                : "none"
+                : fetchedProvider.type === "titan-bedrock"
+                  ? "titan-bedrock"
+                  : "none"
         : "none";
 
       const initialSettings: SemanticSearchSettings = {
@@ -239,6 +241,7 @@ export const useSemanticSearchSettings = () => {
       | "twelvelabs-bedrock"
       | "twelvelabs-bedrock-3-0"
       | "coactive"
+      | "titan-bedrock"
   ) => {
     if (providerType === "none") {
       // Reset to no provider
@@ -356,7 +359,7 @@ export const useSemanticSearchSettings = () => {
             ...prev.current,
             isEnabled: true, // Enable search when Bedrock provider is configured
             provider: {
-              type: providerType as "twelvelabs-bedrock" | "twelvelabs-bedrock-3-0",
+              type: providerType as "twelvelabs-bedrock" | "twelvelabs-bedrock-3-0" | "titan-bedrock",
               config: {
                 id: providerExists ? prev.original.provider.config?.id || "" : "",
                 name: selectedProviderConfig.name,
@@ -371,7 +374,7 @@ export const useSemanticSearchSettings = () => {
             ...prev.current,
             isEnabled: true, // Update original state too
             provider: {
-              type: providerType as "twelvelabs-bedrock" | "twelvelabs-bedrock-3-0",
+              type: providerType as "twelvelabs-bedrock" | "twelvelabs-bedrock-3-0" | "titan-bedrock",
               config: {
                 id: providerExists ? prev.original.provider.config?.id || "" : "",
                 name: selectedProviderConfig.name,
@@ -624,7 +627,8 @@ export const useSemanticSearchSettings = () => {
         }
       } else if (
         current.provider.type === "twelvelabs-bedrock" ||
-        current.provider.type === "twelvelabs-bedrock-3-0"
+        current.provider.type === "twelvelabs-bedrock-3-0" ||
+        current.provider.type === "titan-bedrock"
       ) {
         // For Bedrock variants, determine if we need to create or update
         const providerConfig = getProviderConfig(current.provider.type);
