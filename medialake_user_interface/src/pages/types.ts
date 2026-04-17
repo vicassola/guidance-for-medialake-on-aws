@@ -1,6 +1,6 @@
-import { type ImageItem, type VideoItem, type AudioItem } from "@/types/search/searchResults";
+import { type ImageItem, type VideoItem, type AudioItem, type DocumentItem } from "@/types/search/searchResults";
 
-export type AssetItem = (ImageItem | VideoItem | AudioItem) & {
+export type AssetItem = (ImageItem | VideoItem | AudioItem | DocumentItem) & {
   DigitalSourceAsset: {
     Type: string;
   };

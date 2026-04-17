@@ -82,6 +82,7 @@ interface Filters {
     videos: boolean;
     images: boolean;
     audio: boolean;
+    documents: boolean;
   };
   time: {
     recent: boolean;

@@ -4,10 +4,10 @@ import { API_ENDPOINTS } from "@/api/endpoints";
 import { logger } from "@/common/helpers/logger";
 import { QUERY_KEYS } from "@/api/queryKeys";
 import axios from "axios";
-import { type ImageItem, type VideoItem, type AudioItem } from "@/types/search/searchResults";
+import { type ImageItem, type VideoItem, type AudioItem, type DocumentItem } from "@/types/search/searchResults";
 import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 
-type AssetItem = ImageItem | VideoItem | AudioItem;
+type AssetItem = ImageItem | VideoItem | AudioItem | DocumentItem;
 
 interface ConnectorAssetsParams {
   bucketName: string;
