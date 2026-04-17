@@ -185,7 +185,7 @@ const ImageDetailContent: React.FC = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("summary");
   const [relatedPage, setRelatedPage] = useState(1);
-  const { data: assetData, isLoading: isLoadingAsset, isError: isAssetError } = useAsset(id || "");
+  const { data: assetData, isLoading: isLoadingAsset, isError: isAssetError, error: assetError } = useAsset(id || "");
   const { data: relatedVersionsData, isLoading: isLoadingRelated } = useRelatedVersions(
     id || "",
     relatedPage
@@ -423,6 +423,14 @@ const ImageDetailContent: React.FC = () => {
         <Typography variant="h5" color="error">
           Error loading asset data
         </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Asset ID: {id}
+        </Typography>
+        {assetError && (
+          <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+            {(assetError as Error).message}
+          </Typography>
+        )}
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 2 }}>
           Go Back
         </Button>

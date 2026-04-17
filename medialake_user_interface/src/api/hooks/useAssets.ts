@@ -245,9 +245,15 @@ export const useAsset = (inventoryId: string) => {
     queryKey: QUERY_KEYS.ASSETS.detail(inventoryId),
     queryFn: async () => {
       try {
-        const response = await apiClient.get<AssetResponse>(
-          `assets/${encodeURIComponent(inventoryId)}`
-        );
+        const response = await apiClient.get<AssetResponse>(`assets/${inventoryId}`);
+        // The Lambda proxy integration embeds errors in a 200 response.
+        // Detect and throw so React Query treats it as an error state.
+        const data = response.data as any;
+        if (data?.status === "error" || !data?.data?.asset) {
+          const msg = data?.message || `Asset not found (status: ${data?.status}, has data: ${!!data?.data}, has asset: ${!!data?.data?.asset})`;
+          logger.error("Asset API returned error:", msg, data);
+          throw new Error(msg);
+        }
         return response.data;
       } catch (error) {
         logger.error("Error fetching asset details:", error);

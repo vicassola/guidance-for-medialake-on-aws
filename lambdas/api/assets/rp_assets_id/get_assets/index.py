@@ -200,6 +200,11 @@ def lambda_handler(
         if not asset_id:
             raise AssetDetailsError("Missing asset ID", HTTPStatus.BAD_REQUEST)
 
+        # API Gateway may leave path parameters URL-encoded depending on the
+        # integration configuration. Decode explicitly to handle both cases.
+        from urllib.parse import unquote
+        asset_id = unquote(asset_id)
+
         # Get asset details
         asset_data = get_asset_details(asset_id)
 

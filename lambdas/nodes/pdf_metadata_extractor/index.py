@@ -187,28 +187,41 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
         )
 
         # ── merge with existing EmbeddedMetadata and write to DynamoDB ─────
-        existing = (
-            dynamo.get_item(Key={"InventoryID": inv_id})
-            .get("Item", {})
-            .get("Metadata", {})
-            .get("EmbeddedMetadata", {})
-        )
-        # _sanitize_for_dynamo coerces all pypdf subclass objects to plain
-        # Python primitives and converts floats to Decimal for DynamoDB.
-        merged = {**existing, "pdf": _sanitize_for_dynamo(pdf_meta)}
+        # Read the current item to get any existing EmbeddedMetadata.
+        current_item = dynamo.get_item(Key={"InventoryID": inv_id}).get("Item", {})
+        current_metadata = current_item.get("Metadata") or {}
+        existing_embedded = current_metadata.get("EmbeddedMetadata") or {}
 
+        # Build the full updated Metadata map, preserving existing keys.
+        updated_metadata = {
+            **current_metadata,
+            "EmbeddedMetadata": {
+                **existing_embedded,
+                "pdf": _sanitize_for_dynamo(pdf_meta),
+            },
+        }
+
+        # Write the whole Metadata map back atomically.
+        # This avoids ValidationException when Metadata is null or not a map.
         dynamo.update_item(
             Key={"InventoryID": inv_id},
-            UpdateExpression="SET #md.#em = :m",
-            ExpressionAttributeNames={"#md": "Metadata", "#em": "EmbeddedMetadata"},
-            ExpressionAttributeValues={":m": merged},
+            UpdateExpression="SET #md = :m",
+            ExpressionAttributeNames={"#md": "Metadata"},
+            ExpressionAttributeValues={":m": updated_metadata},
         )
 
         updated_item = _strip_decimals(
             dynamo.get_item(Key={"InventoryID": inv_id}).get("Item", {})
         )
 
-        logger.info("DynamoDB updated", extra={"inventory_id": inv_id})
+        logger.info(
+            "DynamoDB updated",
+            extra={
+                "inventory_id": inv_id,
+                "page_count": pdf_meta.get("page_count"),
+                "fields_written": list(pdf_meta.keys()),
+            },
+        )
 
     return {
         "statusCode": 200,
