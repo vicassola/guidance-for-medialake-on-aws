@@ -235,6 +235,14 @@ class NodesStack(cdk.NestedStack):
             code_path=["lambdas", "nodes", "pdf_metadata_extractor"],
         )
 
+        self.pdf_thumbnail_lambda_deployment = LambdaDeployment(
+            self,
+            "PdfThumbnailLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "pdf_thumbnail"],
+        )
+
         self.pdf_text_extractor_lambda_deployment = LambdaDeployment(
             self,
             "PdfTextExtractorLambdaDeployment",

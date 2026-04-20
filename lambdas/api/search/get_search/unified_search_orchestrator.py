@@ -616,13 +616,17 @@ class UnifiedSearchOrchestrator:
         if hit.source:
             result = hit.source.copy()
 
+            # Always propagate the semantic score so the frontend confidence
+            # threshold filter works correctly for all provider types.
+            result["score"] = hit.score
+
             # Add presigned URLs for thumbnails and proxies
             self._add_presigned_urls(result)
 
             return result
         else:
             # Fallback if no source data
-            return {"InventoryID": hit.asset_id}
+            return {"InventoryID": hit.asset_id, "score": hit.score}
 
     def _add_presigned_urls(self, result: Dict[str, Any]) -> None:
         """Add presigned URLs for thumbnail and proxy representations"""

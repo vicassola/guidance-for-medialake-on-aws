@@ -1,0 +1,63 @@
+spec: v1.0.0
+node:
+  id: pdf_thumbnail
+  title: PDF Thumbnail
+  description: Generate a thumbnail image from the first page of a PDF document
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/PdfThumbnailLambdaDeployment
+        runtime: python3.12
+        memory_size: 2048
+        timeout: 300
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+              resources:
+                - arn:aws:s3:::${MEDIA_ASSETS_BUCKET_NAME}/*
+                - arn:aws:s3:::*/*
+            - effect: Allow
+              actions:
+                - s3:ListBucket
+              resources:
+                - arn:aws:s3:::${MEDIA_ASSETS_BUCKET_NAME}
+                - arn:aws:s3:::*
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - kms:Decrypt
+                - kms:GenerateDataKey
+              resources:
+                - ${MEDIA_ASSETS_BUCKET_ARN_KMS_KEY}
+
+actions:
+  generate:
+    summary: Generate PDF thumbnail
+    description: Rasterize the first page of a PDF to a PNG thumbnail image
+    operationId: generatePdfThumbnail
+    parameters:
+      - in: body
+        name: width
+        required: false
+        schema:
+          type: integer
+          description: Width of the thumbnail in pixels
+          default: 300
+    x-requestMapping: processor/pdf_thumbnail/generate/
+    x-responseMapping: processor/pdf_thumbnail/generate/
+    connections:
+      incoming:
+        type: [document, metadata]
+      outgoing:
+        type: [any]

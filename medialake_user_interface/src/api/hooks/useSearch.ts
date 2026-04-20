@@ -10,6 +10,7 @@ interface SearchParams {
   pageSize?: number;
   isSemantic?: boolean;
   searchModes?: ("visual" | "audio" | "transcript")[];
+  threshold?: number;
   // Sorting parameters
   sortBy?: "createdAt" | "name" | "size" | "type" | "format";
   sortDirection?: "asc" | "desc";
@@ -94,6 +95,11 @@ export const useSearch = (query: string, params?: SearchParams) => {
         queryParams.append("page", page.toString());
         queryParams.append("pageSize", pageSize.toString());
         queryParams.append("semantic", isSemantic.toString());
+
+        // Add threshold for semantic search (used by Titan and other providers for server-side filtering)
+        if (isSemantic && params?.threshold !== undefined) {
+          queryParams.append("threshold", params.threshold.toString());
+        }
 
         // Add searchModality for semantic search (Marengo 3.0 multi-modal)
         if (isSemantic && searchModes.length > 0) {

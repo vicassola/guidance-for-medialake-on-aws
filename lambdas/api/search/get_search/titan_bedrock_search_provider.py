@@ -146,10 +146,23 @@ class TitanBedrockSearchProvider(ProviderPlusStoreSearchProvider):
         )
 
     def search(self, query: SearchQuery) -> SearchResult:
-        """Full search pipeline: embed query → KNN search → return hits."""
-        self.logger.info(f"[TITAN] Semantic search for: '{query.query_text}'")
+        """Full search pipeline: embed query → KNN search → filter by threshold → return hits."""
+        self.logger.info(f"[TITAN] Semantic search for: '{query.query_text}', threshold={query.threshold}")
         embeddings = self.generate_embeddings(query.query_text)
-        return self.execute_store_search(embeddings, query)
+        result = self.execute_store_search(embeddings, query)
+
+        # Apply threshold filtering — drop hits below the confidence threshold.
+        # KNN always returns k results regardless of relevance; we filter here.
+        if query.threshold > 0:
+            before = len(result.hits)
+            result.hits = [h for h in result.hits if h.score >= query.threshold]
+            result.total_results = len(result.hits)
+            self.logger.info(
+                f"[TITAN] Threshold {query.threshold} filtered {before - len(result.hits)} hits, "
+                f"{len(result.hits)} remaining"
+            )
+
+        return result
 
     # ------------------------------------------------------------------
     # Private helpers

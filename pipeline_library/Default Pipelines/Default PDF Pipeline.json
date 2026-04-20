@@ -57,9 +57,35 @@
         "height": 100
       },
       {
-        "id": "dndnode_2",
+        "id": "dndnode_thumb",
         "type": "custom",
         "position": { "x": 336, "y": 416 },
+        "data": {
+          "nodeId": "pdf_thumbnail",
+          "label": "PDF Thumbnail (generate)",
+          "description": "Generate a thumbnail from the first page of the PDF",
+          "icon": { "key": null, "ref": null, "props": { "size": 20 }, "_owner": null },
+          "inputTypes": ["document", "metadata"],
+          "outputTypes": [{ "name": "any", "description": "Output type: any" }],
+          "type": "UTILITY",
+          "configuration": {
+            "method": "generate",
+            "operationId": "generatePdfThumbnail",
+            "parameters": {
+              "width": 300
+            },
+            "path": "",
+            "requestMapping": null,
+            "responseMapping": null
+          }
+        },
+        "width": 200,
+        "height": 100
+      },
+      {
+        "id": "dndnode_2",
+        "type": "custom",
+        "position": { "x": 336, "y": 576 },
         "data": {
           "nodeId": "pdf_text_extractor",
           "label": "PDF Text Extractor (extract)",
@@ -86,7 +112,7 @@
       {
         "id": "dndnode_3",
         "type": "custom",
-        "position": { "x": 336, "y": 576 },
+        "position": { "x": 336, "y": 736 },
         "data": {
           "nodeId": "pdf_text_extractor",
           "label": "PDF Text Extractor (status)",
@@ -110,7 +136,7 @@
       {
         "id": "dndnode_4",
         "type": "custom",
-        "position": { "x": 336, "y": 736 },
+        "position": { "x": 336, "y": 896 },
         "data": {
           "nodeId": "choice",
           "label": "Choice",
@@ -134,7 +160,7 @@
       {
         "id": "dndnode_5",
         "type": "custom",
-        "position": { "x": 608, "y": 736 },
+        "position": { "x": 608, "y": 896 },
         "data": {
           "nodeId": "wait",
           "label": "Wait 30 Seconds",
@@ -154,7 +180,7 @@
       {
         "id": "dndnode_6",
         "type": "custom",
-        "position": { "x": 64, "y": 736 },
+        "position": { "x": 64, "y": 896 },
         "data": {
           "nodeId": "pdf_embedding",
           "label": "PDF Embedding (embed)",
@@ -182,7 +208,7 @@
       {
         "id": "dndnode_7",
         "type": "custom",
-        "position": { "x": 64, "y": 896 },
+        "position": { "x": 64, "y": 1056 },
         "data": {
           "nodeId": "success",
           "label": "Success",
@@ -202,7 +228,7 @@
       {
         "id": "dndnode_8",
         "type": "custom",
-        "position": { "x": 336, "y": 896 },
+        "position": { "x": 336, "y": 1056 },
         "data": {
           "nodeId": "fail",
           "label": "Fail",
@@ -236,12 +262,21 @@
         "targetHandle": "input-document"
       },
       {
-        "id": "dndnode_1-dndnode_2",
+        "id": "dndnode_1-dndnode_thumb",
         "source": "dndnode_1",
+        "target": "dndnode_thumb",
+        "type": "custom",
+        "data": { "type": "custom", "text": "Connected", "id": "dndnode_1-dndnode_thumb" },
+        "sourceHandle": "metadata",
+        "targetHandle": "input-metadata"
+      },
+      {
+        "id": "dndnode_thumb-dndnode_2",
+        "source": "dndnode_thumb",
         "target": "dndnode_2",
         "type": "custom",
-        "data": { "type": "custom", "text": "Connected", "id": "dndnode_1-dndnode_2" },
-        "sourceHandle": "metadata",
+        "data": { "type": "custom", "text": "Connected", "id": "dndnode_thumb-dndnode_2" },
+        "sourceHandle": "any",
         "targetHandle": "input-metadata"
       },
       {
@@ -249,7 +284,7 @@
         "source": "dndnode_2",
         "target": "dndnode_3",
         "type": "custom",
-        "data": { "type": "custom", "text": "Connected", "id": "dndnode_2-dndnode_3" },
+        "data": { "text": "Connected" },
         "sourceHandle": "metadata",
         "targetHandle": "input-any"
       },

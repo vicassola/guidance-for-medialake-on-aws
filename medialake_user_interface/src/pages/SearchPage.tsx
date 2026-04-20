@@ -177,6 +177,7 @@ const SearchPage: React.FC = () => {
     isSemantic: currentSemantic,
     searchModes: searchModes,
     fields: selectedFields,
+    threshold: currentSemantic ? confidenceThreshold : undefined,
     ...facetFilters, // Include facet filters in the search
   });
 
