@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, Suspense, lazy } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Box, CircularProgress, Typography, Paper, Button, Tabs, Tab, alpha } from "@mui/material";
 import { useAsset, useRelatedVersions, RelatedVersionsResponse } from "../api/hooks/useAssets";
+import { useGeneratePresignedUrl } from "../api/hooks/usePresignedUrl";
 import { RightSidebarProvider, useRightSidebar } from "../components/common/RightSidebar";
 import { RecentlyViewedProvider, useTrackRecentlyViewed } from "../contexts/RecentlyViewedContext";
 import { formatFileSize } from "../utils/imageUtils";
@@ -17,6 +18,9 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { springEasing } from "@/constants";
 import { zIndexTokens } from "@/theme/tokens";
 import { useTheme as useMuiTheme } from "@mui/material/styles";
+
+// Lazy-load PdfViewer so PDF.js is only bundled when a Document asset is opened
+const PdfViewer = lazy(() => import("../components/common/PdfViewer"));
 
 const SummaryTab = ({ assetData }: { assetData: any }) => {
   const asset = assetData?.data?.asset;
@@ -191,6 +195,24 @@ const ImageDetailContent: React.FC = () => {
     relatedPage
   );
   const { isExpanded } = useRightSidebar();
+
+  // For Document assets, generate a presigned URL so PdfViewer can fetch the file
+  const isDocument = assetData?.data?.asset?.DigitalSourceAsset?.Type === "Document";
+  const generatePresignedUrl = useGeneratePresignedUrl();
+  const [pdfPresignedUrl, setPdfPresignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isDocument && id && !pdfPresignedUrl) {
+      generatePresignedUrl.mutate(
+        { inventoryId: id, expirationTime: 3600 },
+        {
+          onSuccess: (data) => setPdfPresignedUrl(data.presigned_url),
+          onError: (err) => console.error("Failed to generate PDF presigned URL:", err),
+        }
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDocument, id]);
   const [commentAnchorEl, setCommentAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedComment, setSelectedComment] = useState<number | null>(null);
   const [showHeader, setShowHeader] = useState(true);
@@ -476,7 +498,7 @@ const ImageDetailContent: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Image viewer section */}
+      {/* Image / PDF viewer section */}
       <Box sx={{ px: 3, pt: 0, pb: 3, minHeight: "60vh" }}>
         <Box
           sx={{
@@ -485,7 +507,26 @@ const ImageDetailContent: React.FC = () => {
             position: "relative",
           }}
         >
-          <ImageViewer imageSrc={proxyUrl} maxHeight={600} />
+          {isDocument ? (
+            pdfPresignedUrl ? (
+              <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 400 }}><CircularProgress /></Box>}>
+                <PdfViewer
+                  url={pdfPresignedUrl}
+                  maxHeight={600}
+                  filename={
+                    assetData?.data?.asset?.DigitalSourceAsset?.MainRepresentation
+                      ?.StorageInfo?.PrimaryLocation?.ObjectKey?.Name ?? "document.pdf"
+                  }
+                />
+              </Suspense>
+            ) : (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 400 }}>
+                <CircularProgress />
+              </Box>
+            )
+          ) : (
+            <ImageViewer imageSrc={proxyUrl} maxHeight={600} />
+          )}
         </Box>
       </Box>
 
