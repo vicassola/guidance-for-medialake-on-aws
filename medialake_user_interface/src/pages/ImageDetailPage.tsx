@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Box, CircularProgress, Typography, Paper, Button, Tabs, Tab, alpha } from "@mui/material";
 import { useAsset, useRelatedVersions, RelatedVersionsResponse } from "../api/hooks/useAssets";
-import { useGeneratePresignedUrl } from "../api/hooks/usePresignedUrl";
+import { apiClient } from "../api/apiClient";
 import { RightSidebarProvider, useRightSidebar } from "../components/common/RightSidebar";
 import { RecentlyViewedProvider, useTrackRecentlyViewed } from "../contexts/RecentlyViewedContext";
 import { formatFileSize } from "../utils/imageUtils";
@@ -196,21 +196,30 @@ const ImageDetailContent: React.FC = () => {
   );
   const { isExpanded } = useRightSidebar();
 
-  // For Document assets, generate a presigned URL so PdfViewer can fetch the file
+  // For Document assets, fetch the PDF via the proxy endpoint and create a blob URL
   const isDocument = assetData?.data?.asset?.DigitalSourceAsset?.Type === "Document";
-  const generatePresignedUrl = useGeneratePresignedUrl();
   const [pdfPresignedUrl, setPdfPresignedUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isDocument && id && !pdfPresignedUrl) {
-      generatePresignedUrl.mutate(
-        { inventoryId: id, expirationTime: 3600 },
-        {
-          onSuccess: (data) => setPdfPresignedUrl(data.presigned_url),
-          onError: (err) => console.error("Failed to generate PDF presigned URL:", err),
-        }
-      );
-    }
+    if (!isDocument || !id) return;
+
+    let objectUrl: string | null = null;
+
+    apiClient
+      .get(`assets/${encodeURIComponent(id)}/view`, { responseType: "blob" })
+      .then((response) => {
+        const blob = new Blob([response.data as BlobPart], { type: "application/pdf" });
+        objectUrl = URL.createObjectURL(blob);
+        setPdfPresignedUrl(objectUrl);
+      })
+      .catch((err) => {
+        console.error("Failed to load PDF for viewing:", err);
+      });
+
+    // Revoke the object URL when the component unmounts or id changes
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDocument, id]);
   const [commentAnchorEl, setCommentAnchorEl] = useState<null | HTMLElement>(null);
@@ -327,7 +336,14 @@ const ImageDetailContent: React.FC = () => {
 
   const metadataAccordions = useMemo(() => {
     if (!assetData?.data?.asset?.Metadata) return [];
-    return transformMetadata(assetData.data.asset.Metadata);
+    // Deep-clone Metadata and strip textract.forms (Textract key-value pairs
+    // from form fields) — too noisy to display in the UI.
+    const metadata = JSON.parse(JSON.stringify(assetData.data.asset.Metadata));
+    const textract = metadata?.EmbeddedMetadata?.textract;
+    if (textract) {
+      delete textract.forms;
+    }
+    return transformMetadata(metadata);
   }, [assetData, transformMetadata]);
 
   // All sub-categories that exist in this asset’s EmbeddedMetadata

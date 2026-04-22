@@ -193,7 +193,7 @@
             "method": "embed",
             "operationId": "generatePdfEmbeddings",
             "parameters": {
-              "chunk_size": 8000,
+              "chunk_size": 4000,
               "chunk_overlap": 200,
               "index_name": "asset-embeddings"
             },

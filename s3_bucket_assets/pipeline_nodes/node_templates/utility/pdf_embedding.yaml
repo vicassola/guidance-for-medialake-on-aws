@@ -54,7 +54,7 @@ actions:
         schema:
           type: integer
           description: Maximum characters per text chunk (max 8000 for Titan)
-          default: 8000
+          default: 4000
       - in: body
         name: chunk_overlap
         required: false

@@ -1130,6 +1130,49 @@ class AssetsConstruct(Construct):
         )
         apply_custom_authorization(transcript_get, props.authorizer)
 
+        # Add GET /assets/{id}/view endpoint — proxies the raw file inline
+        # so the browser PDF viewer works without CORS issues on connector buckets.
+        view_resource = asset_resource.add_resource("view")
+        view_asset_lambda = Lambda(
+            self,
+            "ViewAssetLambda",
+            config=LambdaConfig(
+                name="view_asset",
+                entry="lambdas/api/assets/rp_assets_id/view",
+                environment_variables={
+                    "X_ORIGIN_VERIFY_SECRET_ARN": props.x_origin_verify_secret.secret_arn,
+                    "MEDIALAKE_ASSET_TABLE": props.asset_table.table_name,
+                },
+            ),
+        )
+        view_asset_lambda.function.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["dynamodb:GetItem"],
+                resources=[props.asset_table.table_arn],
+            )
+        )
+        view_asset_lambda.function.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["s3:GetObject"],
+                resources=["arn:aws:s3:::*/*"],
+            )
+        )
+        view_asset_lambda.function.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["kms:Decrypt"],
+                resources=["arn:aws:kms:*:*:key/*"],
+            )
+        )
+        view_get = view_resource.add_method(
+            "GET",
+            api_gateway.LambdaIntegration(
+                view_asset_lambda.function,
+                proxy=True,
+                content_handling=api_gateway.ContentHandling.CONVERT_TO_BINARY,
+            ),
+        )
+        apply_custom_authorization(view_get, props.authorizer)
+
         # Add CORS support to all API resources
         add_cors_options_method(self._assets_resource)
         add_cors_options_method(asset_resource)
@@ -1139,6 +1182,7 @@ class AssetsConstruct(Construct):
         add_cors_options_method(rename_resource)
         add_cors_options_method(related_versions_resource)
         add_cors_options_method(transcript_resource)
+        add_cors_options_method(view_resource)
         add_cors_options_method(upload_resource)
         add_cors_options_method(multipart_resource)
         add_cors_options_method(complete_resource)

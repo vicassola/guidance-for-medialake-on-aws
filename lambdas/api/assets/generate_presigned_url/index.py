@@ -173,8 +173,20 @@ def lambda_handler(
         if not bucket or not key:
             raise APIError("Invalid asset storage information", 400)
 
-        # Generate presigned URL
-        presigned_url = generate_presigned_url(bucket, key, request.expiration_time)
+        # Generate presigned URL or CloudFront URL based on inline flag
+        inline = body.get("inline", False)
+
+        if inline:
+            # For inline viewing (e.g. PDF viewer), use CloudFront URL which has
+            # CORS configured and works across all connector buckets.
+            # Import here to avoid cold-start overhead when not needed.
+            from url_utils import generate_cloudfront_url
+            view_url = generate_cloudfront_url(bucket, key)
+            if not view_url:
+                raise APIError("Error generating CloudFront URL", 500)
+            presigned_url = view_url
+        else:
+            presigned_url = generate_presigned_url(bucket, key, request.expiration_time)
 
         metrics.add_metric(name="PresignedUrlGenerated", value=1, unit="Count")
 

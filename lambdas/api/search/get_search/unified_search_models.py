@@ -156,7 +156,7 @@ class SearchQuery:
     filters: Optional[List[Dict]] = (
         None  # Unified filters (includes mediaType, facets, ranges)
     )
-    threshold: float = 0.7
+    threshold: float = 0.6
     include_clips: bool = True
     fields: Optional[List[str]] = None  # Fields to return to FE (used in enrichment)
     search_modes: List[str] = field(
@@ -318,7 +318,7 @@ def create_search_query_from_params(query_params: Dict[str, Any]) -> SearchQuery
     page = int(query_params.get("page", 1))
     page_size = int(query_params.get("pageSize", DEFAULT_PAGE_SIZE))
     semantic = query_params.get("semantic", "false").lower() == "true"
-    threshold = float(query_params.get("threshold", 0.7))
+    threshold = float(query_params.get("threshold", 0.6))
     include_clips = query_params.get("includeClips", "true").lower() == "true"
 
     # Calculate page offset

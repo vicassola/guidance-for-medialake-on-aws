@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
     GET: (id: string) => `/assets/${id}`,
     DELETE: (id: string) => `/assets/${id}`,
     RENAME: (id: string) => `/assets/${id}/rename`,
+    VIEW: (id: string) => `/assets/${id}/view`,
     UPLOAD: "/assets/upload",
     BULK_DOWNLOAD: "/assets/download/bulk",
     BULK_DOWNLOAD_USER_JOBS: "/assets/download/bulk/user",

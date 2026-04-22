@@ -180,7 +180,9 @@ class ApiGatewayConstruct(Construct):
             rest_api_props["deploy_options"] = self.deploy_options
 
         self.api_gateway_rest_api = apigateway.RestApi(
-            self, "MediaLakeApi", **rest_api_props
+            self, "MediaLakeApi",
+            binary_media_types=["application/pdf", "application/octet-stream"],
+            **rest_api_props
         )
 
         # Set the default method options after creating the authorizer
