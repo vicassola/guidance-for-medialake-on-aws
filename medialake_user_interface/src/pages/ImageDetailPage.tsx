@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Box, CircularProgress, Typography, Paper, Button, Tabs, Tab, alpha } from "@mui/material";
 import { useAsset, useRelatedVersions, RelatedVersionsResponse } from "../api/hooks/useAssets";
-import { apiClient } from "../api/apiClient";
+import { StorageHelper } from "@/common/helpers/storage-helper";
 import { RightSidebarProvider, useRightSidebar } from "../components/common/RightSidebar";
 import { RecentlyViewedProvider, useTrackRecentlyViewed } from "../contexts/RecentlyViewedContext";
 import { formatFileSize } from "../utils/imageUtils";
@@ -205,32 +205,39 @@ const ImageDetailContent: React.FC = () => {
 
     let objectUrl: string | null = null;
 
-    apiClient
-      .get(`assets/${encodeURIComponent(id)}/view`, { responseType: "arraybuffer" })
-      .then((response) => {
-        // API Gateway may return the binary as-is (if binary_media_types is set)
-        // or as a base64-encoded JSON body. Handle both cases.
-        let pdfBytes: ArrayBuffer;
-        const contentType = (response.headers?.["content-type"] as string) || "";
+    // Use native fetch instead of apiClient to avoid the response interceptor
+    // that tries to parse binary responses as JSON and corrupts them.
+    const token = StorageHelper.getToken();
+    const baseUrl = StorageHelper.getAwsConfig()?.API?.REST?.RestApi?.endpoint || "";
+    const url = `${baseUrl}/assets/${encodeURIComponent(id)}/view`;
 
-        if (contentType.includes("application/json") || contentType.includes("text/")) {
-          // API Gateway returned a JSON wrapper with base64 body — decode it
-          const text = new TextDecoder().decode(response.data as ArrayBuffer);
-          try {
-            const json = JSON.parse(text);
-            const b64 = json.body ?? json.data?.body ?? text;
-            const binary = atob(b64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            pdfBytes = bytes.buffer;
-          } catch {
-            pdfBytes = response.data as ArrayBuffer;
-          }
-        } else {
-          pdfBytes = response.data as ArrayBuffer;
+    fetch(url, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const contentType = res.headers.get("content-type") || "";
+
+        if (contentType.includes("application/pdf")) {
+          // Binary response — use directly
+          return res.blob();
         }
 
-        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        // JSON response — API Gateway returned base64-encoded body
+        const json = await res.json();
+        // The Lambda proxy response has shape: {statusCode, headers, body, isBase64Encoded}
+        // apiClient's interceptor may have already unwrapped it to {status, message, data}
+        const b64: string = json.body ?? json.data?.body ?? "";
+        if (!b64) throw new Error("Empty body in API response");
+
+        const binary = atob(b64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type: "application/pdf" });
+      })
+      .then((blob) => {
         objectUrl = URL.createObjectURL(blob);
         setPdfPresignedUrl(objectUrl);
       })
