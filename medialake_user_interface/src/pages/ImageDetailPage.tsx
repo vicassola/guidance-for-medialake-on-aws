@@ -206,9 +206,31 @@ const ImageDetailContent: React.FC = () => {
     let objectUrl: string | null = null;
 
     apiClient
-      .get(`assets/${encodeURIComponent(id)}/view`, { responseType: "blob" })
+      .get(`assets/${encodeURIComponent(id)}/view`, { responseType: "arraybuffer" })
       .then((response) => {
-        const blob = new Blob([response.data as BlobPart], { type: "application/pdf" });
+        // API Gateway may return the binary as-is (if binary_media_types is set)
+        // or as a base64-encoded JSON body. Handle both cases.
+        let pdfBytes: ArrayBuffer;
+        const contentType = (response.headers?.["content-type"] as string) || "";
+
+        if (contentType.includes("application/json") || contentType.includes("text/")) {
+          // API Gateway returned a JSON wrapper with base64 body — decode it
+          const text = new TextDecoder().decode(response.data as ArrayBuffer);
+          try {
+            const json = JSON.parse(text);
+            const b64 = json.body ?? json.data?.body ?? text;
+            const binary = atob(b64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            pdfBytes = bytes.buffer;
+          } catch {
+            pdfBytes = response.data as ArrayBuffer;
+          }
+        } else {
+          pdfBytes = response.data as ArrayBuffer;
+        }
+
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
         objectUrl = URL.createObjectURL(blob);
         setPdfPresignedUrl(objectUrl);
       })
