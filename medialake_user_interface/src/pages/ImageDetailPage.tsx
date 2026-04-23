@@ -199,6 +199,7 @@ const ImageDetailContent: React.FC = () => {
   // For Document assets, fetch the PDF via the proxy endpoint and create a blob URL
   const isDocument = assetData?.data?.asset?.DigitalSourceAsset?.Type === "Document";
   const [pdfPresignedUrl, setPdfPresignedUrl] = useState<string | null>(null);
+  const [pdfLoadError, setPdfLoadError] = useState(false);
 
   useEffect(() => {
     if (!isDocument || !id) return;
@@ -243,6 +244,7 @@ const ImageDetailContent: React.FC = () => {
       })
       .catch((err) => {
         console.error("Failed to load PDF for viewing:", err);
+        setPdfLoadError(true);
       });
 
     // Revoke the object URL when the component unmounts or id changes
@@ -424,6 +426,13 @@ const ImageDetailContent: React.FC = () => {
     );
   }, [assetData]);
 
+  const thumbnailUrl = useMemo(() => {
+    if (!assetData?.data?.asset) return "";
+    const derived = assetData.data.asset.DerivedRepresentations ?? [];
+    const thumbRep = derived.find((rep) => rep.Purpose === "thumbnail");
+    return thumbRep?.URL || "";
+  }, [assetData]);
+
   const handleBack = useCallback(() => {
     // If we came from a specific location with state, go back in history
     if (location.state && (searchTerm || location.state.preserveSearch)) {
@@ -553,7 +562,27 @@ const ImageDetailContent: React.FC = () => {
           }}
         >
           {isDocument ? (
-            pdfPresignedUrl ? (
+            pdfLoadError ? (
+              // PDF viewer failed — show thumbnail as fallback
+              thumbnailUrl ? (
+                <Box
+                  component="img"
+                  src={thumbnailUrl}
+                  alt="PDF preview"
+                  sx={{
+                    maxWidth: "100%",
+                    maxHeight: 600,
+                    display: "block",
+                    margin: "0 auto",
+                    borderRadius: 1,
+                  }}
+                />
+              ) : (
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 200 }}>
+                  <Typography color="text.secondary">Preview not available</Typography>
+                </Box>
+              )
+            ) : pdfPresignedUrl ? (
               <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 400 }}><CircularProgress /></Box>}>
                 <PdfViewer
                   url={pdfPresignedUrl}
@@ -562,6 +591,7 @@ const ImageDetailContent: React.FC = () => {
                     assetData?.data?.asset?.DigitalSourceAsset?.MainRepresentation
                       ?.StorageInfo?.PrimaryLocation?.ObjectKey?.Name ?? "document.pdf"
                   }
+                  onError={() => setPdfLoadError(true)}
                 />
               </Suspense>
             ) : (

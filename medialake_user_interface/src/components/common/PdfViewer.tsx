@@ -51,6 +51,8 @@ interface PdfViewerProps {
   maxHeight?: string | number;
   /** Original filename used for the download button. */
   filename?: string;
+  /** Called when the PDF fails to load. */
+  onError?: () => void;
 }
 
 const ZOOM_STEP = 0.2;
@@ -62,6 +64,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   url,
   maxHeight = "70vh",
   filename = "document.pdf",
+  onError,
 }) => {
   const theme = useTheme();
 
@@ -91,7 +94,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   const onDocumentLoadError = useCallback((error: Error) => {
     setLoadError(error.message || "Failed to load PDF");
     setIsLoading(false);
-  }, []);
+    if (onError) onError();
+  }, [onError]);
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
