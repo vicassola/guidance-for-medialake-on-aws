@@ -12,7 +12,6 @@ node:
         runtime: python3.12
         timeout: 900 # 15 minutes for video processing
         layers:
-          - PyMediaInfo
           - FFProbe
         iam_policy:
           statements:

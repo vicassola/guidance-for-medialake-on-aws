@@ -12,7 +12,6 @@ from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from botocore.config import Config
 from lambda_middleware import lambda_middleware
-from pymediainfo import MediaInfo
 
 # ─── constants ──────────────────────────────────────────────────────────
 SIGNED_URL_TIMEOUT = int(os.getenv("SIGNED_URL_TIMEOUT", "300"))  # give ffprobe time
@@ -121,7 +120,7 @@ def _json_default(o):
 
 def run_ffprobe(input_path: str) -> Dict[str, Any]:
     """Return ffprobe JSON for a file or URL, raise on error."""
-    # Limit probe size so ffprobe doesn’t try to slurp entire remote objects
+    # Limit probe size so ffprobe doesn't try to slurp entire remote objects
     cmd = [
         FFPROBE_BIN,
         "-v",
@@ -142,45 +141,65 @@ def run_ffprobe(input_path: str) -> Dict[str, Any]:
     return json.loads(result.stdout)
 
 
-def run_mediainfo(input_path: str) -> Dict[str, Any]:
-    """Return MediaInfo JSON for a file path or (if supported) HTTP URL."""
+def _parse_framerate(r_frame_rate: str) -> Optional[float]:
+    """Convert ffprobe r_frame_rate fraction string (e.g. '30000/1001') to float."""
     try:
-        return json.loads(MediaInfo.parse(input_path, output="JSON"))
-    except Exception as e:
-        # Some layers don’t have libcurl-enabled MediaInfo; fall back to empty
-        logger.warning(
-            "MediaInfo failed; continuing with ffprobe only", extra={"error": str(e)}
-        )
-        return {"media": {"track": []}}
+        if "/" in r_frame_rate:
+            num, den = r_frame_rate.split("/")
+            den = int(den)
+            if den == 0:
+                return None
+            return round(int(num) / den, 6)
+        return float(r_frame_rate)
+    except Exception:
+        return None
 
 
-def merge_metadata(ff: Dict, mi: Dict) -> Dict[str, Any]:
-    merged = {"general": {}, "video": [], "audio": []}
+def merge_metadata(ff: Dict) -> Dict[str, Any]:
+    """
+    Build a merged metadata dict from ffprobe output only.
 
-    ff_general = {k: v for k, v in ff.get("format", {}).items() if k != "streams"}
-    mi_general = next(
-        (
-            t
-            for t in mi.get("media", {}).get("track", [])
-            if t.get("@type") == "General"
-        ),
-        {},
-    )
-    merged["general"] = {**ff_general, **mi_general}
+    PyMediaInfo has been removed to stay within the Lambda 250 MB layer limit.
+    The 'general' section mirrors the fields that PyMediaInfo used to provide
+    so that downstream consumers continue to find the same keys they expect:
+      - FrameRate  (used by embedding_store._extract_fps)
+      - Duration   (used by twelvelabs_bedrock_results)
+    """
+    merged: Dict[str, Any] = {"general": {}, "video": [], "audio": []}
 
-    ff_video = [s for s in ff.get("streams", []) if s.get("codec_type") == "video"]
-    ff_audio = [s for s in ff.get("streams", []) if s.get("codec_type") == "audio"]
-    tracks = mi.get("media", {}).get("track", [])
-    mi_video = [t for t in tracks if t.get("@type") == "Video"]
-    mi_audio = [t for t in tracks if t.get("@type") == "Audio"]
+    fmt = ff.get("format", {})
+    streams = ff.get("streams", [])
 
-    for i, stream in enumerate(ff_video):
-        extra = mi_video[i] if i < len(mi_video) else {}
-        merged["video"].append({**stream, **extra})
+    # ── general section ──────────────────────────────────────────────────
+    # Start with all format-level fields (filename, nb_streams, size, bit_rate, …)
+    general = {k: v for k, v in fmt.items() if k != "tags"}
+    # Merge format tags at the top level of general (mirrors PyMediaInfo behaviour)
+    general.update(fmt.get("tags", {}))
 
-    for i, stream in enumerate(ff_audio):
-        extra = mi_audio[i] if i < len(mi_audio) else {}
-        merged["audio"].append({**stream, **extra})
+    # Duration: ffprobe gives seconds as a string float → keep as string for
+    # compatibility with PyMediaInfo consumers that do float(Duration)
+    if "duration" in fmt:
+        general["Duration"] = fmt["duration"]
+
+    # FrameRate: derive from the first video stream's r_frame_rate.
+    # PyMediaInfo stored this as a plain decimal string in general["FrameRate"].
+    video_streams = [s for s in streams if s.get("codec_type") == "video"]
+    if video_streams:
+        r_fr = video_streams[0].get("r_frame_rate", "")
+        fps = _parse_framerate(r_fr)
+        if fps is not None:
+            general["FrameRate"] = str(fps)
+
+    merged["general"] = general
+
+    # ── per-stream sections ───────────────────────────────────────────────
+    audio_streams = [s for s in streams if s.get("codec_type") == "audio"]
+
+    for stream in video_streams:
+        merged["video"].append(dict(stream))
+
+    for stream in audio_streams:
+        merged["audio"].append(dict(stream))
 
     return merged
 
@@ -292,14 +311,11 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext):
                 input_path = presigned_url(bucket, key)
                 steps[inv_id]["S3_presigned_url"] = "Success"
 
-            # Probe
+            # Probe with ffprobe only
             ff = run_ffprobe(input_path)
-            mi = run_mediainfo(
-                input_path if downloaded else input_path
-            )  # try URL; will fall back
             steps[inv_id]["Metadata_probe"] = "Success"
 
-            merged = merge_metadata(ff, mi)
+            merged = merge_metadata(ff)
             sanitized = sanitize_metadata(merged)
 
             # Upsert in DynamoDB

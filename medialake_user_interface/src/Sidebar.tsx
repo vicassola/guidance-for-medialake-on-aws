@@ -37,10 +37,11 @@ import {
   Group as GroupIcon,
   Home as HomeIcon,
   Extension as IntegrationIcon,
-  Terrain as LogoIcon,
   Folder as FolderIcon,
   Security as SecurityIcon,
 } from "@mui/icons-material";
+import logoFull from "./assets/images/Mediaset_Logo.png";
+import logoIcon from "./assets/images/Mediaset_Only_Logo.png";
 import { useLocation, useNavigate } from "react-router";
 import { useTheme as useCustomTheme } from "./hooks/useTheme";
 import { useSidebar } from "./contexts/SidebarContext";
@@ -314,24 +315,18 @@ function Sidebar() {
             borderColor: "divider",
           }}
         >
-          <LogoIcon
-            sx={{
-              fontSize: "32px",
-              color: theme.palette.primary.main,
-              marginRight: isRTL ? 0 : isCollapsed ? 0 : 1,
-              marginLeft: isRTL ? (isCollapsed ? 0 : 1) : 0,
-            }}
-          />
-          {!isCollapsed && (
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                color: theme.palette.primary.main,
-              }}
-            >
-              {t("app.branding.name", "MediaLake")}
-            </Typography>
+          {isCollapsed ? (
+            <img
+              src={logoIcon}
+              alt="Mediaset"
+              style={{ height: "32px", width: "auto", objectFit: "contain" }}
+            />
+          ) : (
+            <img
+              src={logoFull}
+              alt="Mediaset"
+              style={{ height: "32px", width: "auto", objectFit: "contain" }}
+            />
           )}
         </Box>
 

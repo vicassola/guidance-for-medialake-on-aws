@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Box, CircularProgress, Button, Typography, Stack, Divider } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { Terrain as LogoIcon } from "@mui/icons-material";
 import { Authenticator, ThemeProvider as AmplifyThemeProvider } from "@aws-amplify/ui-react";
 import { fetchAuthSession, signIn, confirmSignIn, signInWithRedirect } from "aws-amplify/auth";
 import { useAuth } from "../common/hooks/auth-context";
@@ -10,6 +9,7 @@ import { useAwsConfig } from "../common/hooks/aws-config-context";
 import { StorageHelper } from "../common/helpers/storage-helper";
 import { theme, components } from "./auth/theme";
 import { colorTokens } from "../theme/tokens";
+import logoFull from "../assets/images/Mediaset_Logo.png";
 
 const AuthPage = () => {
   const { completeLogin, isAuthenticated } = useAuth();
@@ -61,12 +61,10 @@ const AuthPage = () => {
         }}
       >
         <Box sx={{ mb: 4 }}>
-          <LogoIcon
-            sx={{
-              fontSize: "40px",
-              color: "white",
-              mb: 2,
-            }}
+          <img
+            src={logoFull}
+            alt="Mediaset"
+            style={{ height: "48px", width: "auto", objectFit: "contain", marginBottom: "1rem" }}
           />
           <h1
             style={{
