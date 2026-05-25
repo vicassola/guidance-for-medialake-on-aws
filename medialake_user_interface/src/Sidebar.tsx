@@ -22,6 +22,8 @@ import {
   Menu,
   MenuItem,
   Avatar,
+  Chip,
+  Badge,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import {
@@ -39,6 +41,7 @@ import {
   Extension as IntegrationIcon,
   Folder as FolderIcon,
   Security as SecurityIcon,
+  AutoAwesome as ShowcaseIcon,
 } from "@mui/icons-material";
 import logoFull from "./assets/images/Mediaset_Logo.png";
 import logoIcon from "./assets/images/Mediaset_Only_Logo.png";
@@ -165,6 +168,14 @@ function Sidebar() {
       path: "/",
       disabled: false,
       adminOnly: false,
+    },
+    {
+      text: "Showcase",
+      icon: <ShowcaseIcon />,
+      path: "/showcase",
+      disabled: false,
+      adminOnly: false,
+      badge: "DEMO",
     },
     {
       text: t("sidebar.menu.assets"),
@@ -415,7 +426,18 @@ function Sidebar() {
                               ),
                             }}
                           >
-                            {menuItem.icon}
+                            {"badge" in menuItem && (menuItem as any).badge ? (
+                              <Badge
+                                color="error"
+                                variant="dot"
+                                overlap="circular"
+                                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                              >
+                                {menuItem.icon}
+                              </Badge>
+                            ) : (
+                              menuItem.icon
+                            )}
                           </ListItemIcon>
                         </ListItemButton>
                       </Tooltip>
@@ -462,24 +484,47 @@ function Sidebar() {
                         </ListItemIcon>
                         <ListItemText
                           primary={
-                            <Typography
-                              variant="body2"
+                            <Box
                               sx={{
-                                fontWeight:
-                                  isActive(menuItem.path || "") ||
-                                  (menuItem.isExpandable && menuItem.isExpanded)
-                                    ? 600
-                                    : 400,
-                                color:
-                                  isActive(menuItem.path || "") ||
-                                  (menuItem.isExpandable && menuItem.isExpanded)
-                                    ? theme.palette.primary.main
-                                    : theme.palette.text.primary,
-                                textAlign: isRTL ? "right" : "left",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                justifyContent: isRTL ? "flex-end" : "flex-start",
                               }}
                             >
-                              {menuItem.text}
-                            </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight:
+                                    isActive(menuItem.path || "") ||
+                                    (menuItem.isExpandable && menuItem.isExpanded)
+                                      ? 600
+                                      : 400,
+                                  color:
+                                    isActive(menuItem.path || "") ||
+                                    (menuItem.isExpandable && menuItem.isExpanded)
+                                      ? theme.palette.primary.main
+                                      : theme.palette.text.primary,
+                                  textAlign: isRTL ? "right" : "left",
+                                }}
+                              >
+                                {menuItem.text}
+                              </Typography>
+                              {"badge" in menuItem && (menuItem as any).badge && (
+                                <Chip
+                                  label={(menuItem as any).badge}
+                                  size="small"
+                                  color="error"
+                                  sx={{
+                                    height: 18,
+                                    fontSize: "0.625rem",
+                                    fontWeight: 700,
+                                    letterSpacing: "0.04em",
+                                    "& .MuiChip-label": { px: 0.75 },
+                                  }}
+                                />
+                              )}
+                            </Box>
                           }
                           sx={{ textAlign: isRTL ? "right" : "left" }}
                         />

@@ -35,6 +35,7 @@ import AuthPage from "@/components/AuthPage";
 import AccessDeniedPage from "@/pages/AccessDeniedPage";
 // Lazy page elements — each creates its own code-split chunk
 const LazyHome = lazyLoad(() => import("@/pages/Home"));
+const LazyShowcasePage = lazyLoad(() => import("@/pages/ShowcasePage"));
 const LazySearchPage = lazyLoad(() => import("@/pages/SearchPage"));
 const LazyAssetsPage = lazyLoad(() => import("@/pages/AssetsPage"));
 const LazyCollectionsPage = lazyLoad(() => import("@/pages/CollectionsPage"));
@@ -107,6 +108,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: LazyHome },
+      { path: "showcase", element: LazyShowcasePage },
       {
         path: "search",
         element: (
