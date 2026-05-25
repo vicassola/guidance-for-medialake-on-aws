@@ -1,0 +1,40 @@
+spec: v1.0.0
+node:
+  id: filename_tagger
+  title: Filename Tagger
+  description: Inspect the asset filename and add a semantic tag (e.g. dr.house, chicago-fire) to Metadata.Tags
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/FilenameTaggerLambdaDeployment
+        runtime: python3.12
+        timeout: 60
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              resources:
+                - "*"
+
+actions:
+  tag:
+    summary: Tag asset by filename
+    description: Match the asset's filename against built-in rules and append a tag to Metadata.Tags
+    operationId: tagByFilename
+    parameters: []
+    connections:
+      incoming:
+        type: [any]
+      outgoing:
+        type: [any]

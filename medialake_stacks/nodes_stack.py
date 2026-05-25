@@ -398,6 +398,35 @@ class NodesStack(cdk.NestedStack):
             code_path=["lambdas", "nodes", "external_metadata_fetch"],
         )
 
+        # Demo nodes - conditional pipeline chaining PoC
+        # Tags an asset by filename rules and exposes the tag for downstream
+        # pipelines via publish_event's customDetail merge.
+        self.filename_tagger_lambda_deployment = LambdaDeployment(
+            self,
+            "FilenameTaggerLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "filename_tagger"],
+        )
+
+        # Enriches assets tagged "dr.house" with hardcoded cast info.
+        self.dr_house_actor_info_lambda_deployment = LambdaDeployment(
+            self,
+            "DrHouseActorInfoLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "dr_house_actor_info"],
+        )
+
+        # Enriches assets tagged "chicago-fire" with random highlight timestamps.
+        self.chicago_fire_highlights_lambda_deployment = LambdaDeployment(
+            self,
+            "ChicagoFireHighlightsLambdaDeployment",
+            destination_bucket=props.iac_bucket.bucket,
+            parent_folder="nodes/utility",
+            code_path=["lambdas", "nodes", "chicago_fire_highlights"],
+        )
+
         # ========================================
         # External Nodes Integration
         # ========================================

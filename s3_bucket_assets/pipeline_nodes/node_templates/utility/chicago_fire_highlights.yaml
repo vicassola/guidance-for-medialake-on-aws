@@ -1,0 +1,40 @@
+spec: v1.0.0
+node:
+  id: chicago_fire_highlights
+  title: Chicago Fire Highlights
+  description: Demo enrichment node - generates random highlight timestamps spanning the video duration and stores them under Metadata.Highlights
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/ChicagoFireHighlightsLambdaDeployment
+        runtime: python3.12
+        timeout: 60
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              resources:
+                - "*"
+
+actions:
+  enrich:
+    summary: Generate Chicago Fire highlights
+    description: Generate random highlight timestamps for the asset and store them under Metadata.Highlights
+    operationId: generateChicagoFireHighlights
+    parameters: []
+    connections:
+      incoming:
+        type: [any]
+      outgoing:
+        type: [any]

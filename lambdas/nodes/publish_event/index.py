@@ -40,7 +40,21 @@ def lambda_handler(event, context: LambdaContext):
     # Use the configured event bus name, allow override from input payload
     event_bus_name = input_payload.get("EventBusName", EVENT_BUS_NAME)
 
-    detail = {"pipelineName": pipeline_name, "status": "SUCCESS", "outputs": event}
+    # Optional: upstream nodes can attach a `customDetail` dict to their step
+    # output. We merge it into the published EventBridge detail so downstream
+    # pipelines can subscribe with rules that filter on arbitrary fields
+    # (e.g. detail.tag) without requiring an EventBridge infra change.
+    # Standard keys (pipelineName/status/outputs) are not overridable.
+    custom_detail = input_payload.get("customDetail")
+    if not isinstance(custom_detail, dict):
+        custom_detail = {}
+
+    detail = {
+        **custom_detail,
+        "pipelineName": pipeline_name,
+        "status": "SUCCESS",
+        "outputs": event,
+    }
 
     entries = [
         {

@@ -1,0 +1,40 @@
+spec: v1.0.0
+node:
+  id: dr_house_actor_info
+  title: Dr. House Actor Info
+  description: Demo enrichment node - writes hardcoded House M.D. cast information to the asset's Metadata.ActorInfo
+  version: 1.0.0
+  type: utility
+  integration:
+    config:
+      lambda:
+        handler: utility/DrHouseActorInfoLambdaDeployment
+        runtime: python3.12
+        timeout: 60
+        iam_policy:
+          statements:
+            - effect: Allow
+              actions:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              resources:
+                - ${MEDIALAKE_ASSET_TABLE}
+            - effect: Allow
+              actions:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              resources:
+                - "*"
+
+actions:
+  enrich:
+    summary: Add Dr. House actor info
+    description: Append hardcoded House M.D. cast information to the asset metadata
+    operationId: addDrHouseActorInfo
+    parameters: []
+    connections:
+      incoming:
+        type: [any]
+      outgoing:
+        type: [any]
