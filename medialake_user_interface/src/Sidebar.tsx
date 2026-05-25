@@ -170,9 +170,9 @@ function Sidebar() {
       adminOnly: false,
     },
     {
-      text: "Showcase",
+      text: "Review",
       icon: <ShowcaseIcon />,
-      path: "/showcase",
+      path: "/review",
       disabled: false,
       adminOnly: false,
       badge: "DEMO",

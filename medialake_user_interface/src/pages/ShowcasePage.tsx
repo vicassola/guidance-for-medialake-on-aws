@@ -1,258 +1,479 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  Grid,
   Chip,
-  Avatar,
-  Button,
-  TextField,
-  MenuItem,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  LinearProgress,
-  Stack,
-  Divider,
   IconButton,
   Tooltip,
-  Alert,
+  Stack,
+  Collapse,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  LinearProgress,
+  TextField,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import {
-  TrendingUp,
-  CloudUpload,
-  Speed,
   CheckCircle,
-  Warning,
-  Error as ErrorIcon,
-  MoreVert,
-  Refresh,
+  Cancel,
+  ExpandMore,
+  ExpandLess,
+  Videocam,
+  Image as ImageIcon,
+  AudioFile,
+  Description,
+  TaskAlt,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 
-type Status = "active" | "pending" | "failed";
+type FieldStatus = "pending" | "approved" | "rejected";
 
-const mockStats = [
-  { label: "Total Assets", value: "12,438", delta: "+8.2%", icon: <CloudUpload /> },
-  { label: "Active Pipelines", value: "27", delta: "+3", icon: <Speed /> },
-  { label: "Processed Today", value: "1,204", delta: "+12.5%", icon: <TrendingUp /> },
-  { label: "Success Rate", value: "98.4%", delta: "+0.3%", icon: <CheckCircle /> },
-];
-
-const mockRows: {
+type ReviewField = {
   id: string;
-  name: string;
-  type: string;
-  size: string;
-  status: Status;
-  owner: string;
-  progress: number;
-}[] = [
-  { id: "1", name: "campaign-spring-2026.mp4", type: "Video", size: "1.2 GB", status: "active", owner: "Giovanni N.", progress: 100 },
-  { id: "2", name: "product-hero-shot.png", type: "Image", size: "8.4 MB", status: "active", owner: "Marta R.", progress: 100 },
-  { id: "3", name: "interview-raw-04.wav", type: "Audio", size: "240 MB", status: "pending", owner: "Alex T.", progress: 64 },
-  { id: "4", name: "brand-guidelines.pdf", type: "Document", size: "12 MB", status: "active", owner: "Giovanni N.", progress: 100 },
-  { id: "5", name: "drone-footage-uncut.mov", type: "Video", size: "4.8 GB", status: "failed", owner: "Sofia L.", progress: 23 },
-];
-
-const statusChip: Record<Status, { color: "success" | "warning" | "error"; icon: React.ReactElement; label: string }> = {
-  active: { color: "success", icon: <CheckCircle fontSize="small" />, label: "Active" },
-  pending: { color: "warning", icon: <Warning fontSize="small" />, label: "Pending" },
-  failed: { color: "error", icon: <ErrorIcon fontSize="small" />, label: "Failed" },
+  label: string;
+  value: string | string[];
+  confidence: number;
+  status: FieldStatus;
 };
 
-const ShowcasePage: React.FC = () => {
-  const theme = useTheme();
-  const [filter, setFilter] = useState("all");
-  const [feedback, setFeedback] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+type ReviewItem = {
+  id: string;
+  name: string;
+  type: "Video" | "Image" | "Audio" | "Document";
+  processedAt: string;
+  fields: ReviewField[];
+};
 
-  const filteredRows = filter === "all" ? mockRows : mockRows.filter((r) => r.status === filter);
+const initialItems: ReviewItem[] = [
+  {
+    id: "1",
+    name: "dr-house-s05e12.mp4",
+    type: "Video",
+    processedAt: "2026-05-25T09:14:00Z",
+    fields: [
+      { id: "1-1", label: "Genre", value: "Medical drama", confidence: 0.94, status: "pending" },
+      { id: "1-2", label: "Tags", value: ["hospital", "procedural", "mystery", "medicine"], confidence: 0.87, status: "pending" },
+      { id: "1-3", label: "Content Rating", value: "TV-14", confidence: 0.99, status: "pending" },
+      { id: "1-4", label: "Language", value: "English", confidence: 0.99, status: "pending" },
+      { id: "1-5", label: "Key Persons", value: ["Hugh Laurie", "Lisa Edelstein", "Omar Epps"], confidence: 0.91, status: "pending" },
+    ],
+  },
+  {
+    id: "2",
+    name: "breaking-news-italia.mp4",
+    type: "Video",
+    processedAt: "2026-05-25T08:30:00Z",
+    fields: [
+      { id: "2-1", label: "Category", value: "News", confidence: 0.98, status: "pending" },
+      { id: "2-2", label: "Sentiment", value: "Negative", confidence: 0.76, status: "pending" },
+      { id: "2-3", label: "Language", value: "Italian", confidence: 0.99, status: "pending" },
+      { id: "2-4", label: "Location", value: "Rome, Italy", confidence: 0.82, status: "pending" },
+    ],
+  },
+  {
+    id: "3",
+    name: "product-hero-shot.png",
+    type: "Image",
+    processedAt: "2026-05-25T07:55:00Z",
+    fields: [
+      { id: "3-1", label: "Style", value: "Commercial photography", confidence: 0.88, status: "pending" },
+      { id: "3-2", label: "Color Palette", value: ["#1A2B4C", "#F5F5F5", "#E63946"], confidence: 0.79, status: "pending" },
+      { id: "3-3", label: "Subject", value: "Consumer product", confidence: 0.93, status: "pending" },
+    ],
+  },
+  {
+    id: "4",
+    name: "podcast-ep42.mp3",
+    type: "Audio",
+    processedAt: "2026-05-25T07:10:00Z",
+    fields: [
+      { id: "4-1", label: "Genre", value: "Technology", confidence: 0.91, status: "pending" },
+      { id: "4-2", label: "Speakers", value: ["Giovanni N.", "Marta R."], confidence: 0.84, status: "pending" },
+      { id: "4-3", label: "Topics", value: ["AI", "media management", "automation"], confidence: 0.89, status: "pending" },
+    ],
+  },
+  {
+    id: "5",
+    name: "brand-guidelines.pdf",
+    type: "Document",
+    processedAt: "2026-05-24T16:00:00Z",
+    fields: [
+      { id: "5-1", label: "Category", value: "Brand identity", confidence: 0.97, status: "approved" },
+      { id: "5-2", label: "Language", value: "English", confidence: 0.99, status: "approved" },
+      { id: "5-3", label: "Tags", value: ["branding", "guidelines", "design system"], confidence: 0.95, status: "approved" },
+    ],
+  },
+];
+
+const typeIcon: Record<ReviewItem["type"], React.ReactElement> = {
+  Video: <Videocam fontSize="small" />,
+  Image: <ImageIcon fontSize="small" />,
+  Audio: <AudioFile fontSize="small" />,
+  Document: <Description fontSize="small" />,
+};
+
+const typeColor: Record<ReviewItem["type"], string> = {
+  Video: "primary",
+  Image: "secondary",
+  Audio: "warning",
+  Document: "default",
+};
+
+function itemSummary(fields: ReviewField[]) {
+  const pending = fields.filter((f) => f.status === "pending").length;
+  const total = fields.length;
+  return { pending, total, complete: pending === 0 };
+}
+
+function formatProcessedAt(iso: string) {
+  return new Date(iso).toLocaleString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const ReviewPage: React.FC = () => {
+  const theme = useTheme();
+  const [items, setItems] = useState<ReviewItem[]>(initialItems);
+  const [expandedId, setExpandedId] = useState<string | null>("1");
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [draftValue, setDraftValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = (field: ReviewField) => {
+    setEditingFieldId(field.id);
+    setDraftValue(Array.isArray(field.value) ? field.value.join(", ") : field.value);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const commitEdit = (itemId: string, fieldId: string, isArray: boolean) => {
+    const trimmed = draftValue.trim();
+    if (trimmed) {
+      const newValue: string | string[] = isArray
+        ? trimmed.split(",").map((v) => v.trim()).filter(Boolean)
+        : trimmed;
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId
+            ? { ...item, fields: item.fields.map((f) => (f.id === fieldId ? { ...f, value: newValue } : f)) }
+            : item
+        )
+      );
+    }
+    setEditingFieldId(null);
+  };
+
+  const setFieldStatus = (itemId: string, fieldId: string, status: FieldStatus) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? { ...item, fields: item.fields.map((f) => (f.id === fieldId ? { ...f, status } : f)) }
+          : item
+      )
+    );
+  };
+
+  const totalPending = items.reduce((acc, item) => acc + itemSummary(item.fields).pending, 0);
+  const itemsPending = items.filter((item) => !itemSummary(item.fields).complete).length;
 
   return (
-    <Box sx={{ p: 4, maxWidth: 1400, mx: "auto" }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={4}>
+    <Box sx={{ p: 4, maxWidth: 1100, mx: "auto" }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3}>
         <Box>
           <Typography variant="h4" fontWeight={700} gutterBottom>
-            Showcase
+            Review
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            A demo page built with MUI components — no backend, all data is mocked client-side.
+            {itemsPending > 0
+              ? `${itemsPending} asset in attesa di revisione · ${totalPending} campi da approvare`
+              : "Tutti gli asset sono stati revisionati."}
           </Typography>
         </Box>
-        <Tooltip title="Refresh (does nothing — it's a demo)">
-          <IconButton color="primary">
-            <Refresh />
-          </IconButton>
-        </Tooltip>
       </Stack>
 
-      <Alert
-        severity="error"
-        variant="filled"
-        icon={false}
-        sx={{ mb: 4, alignItems: "center" }}
+      <Box
+        sx={{
+          border: `1px solid ${theme.palette.divider}`,
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
       >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Chip
-            label="DEMO"
-            size="small"
-            sx={{
-              bgcolor: "rgba(255,255,255,0.25)",
-              color: "common.white",
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-            }}
-          />
-          <Typography variant="body2">
-            This page is fully mocked — no API calls, no real data. Source: <code>src/pages/ShowcasePage.tsx</code>.
-          </Typography>
-        </Stack>
-      </Alert>
+        {items.map((item, idx) => {
+          const { pending, total, complete } = itemSummary(item.fields);
+          const reviewed = total - pending;
+          const isExpanded = expandedId === item.id;
 
-      <Grid container spacing={3} mb={4}>
-        {mockStats.map((stat) => (
-          <Grid key={stat.label} size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card sx={{ height: "100%" }}>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                  <Avatar sx={{ bgcolor: theme.palette.primary.main + "20", color: "primary.main" }}>
-                    {stat.icon}
-                  </Avatar>
-                  <Chip label={stat.delta} size="small" color="success" variant="outlined" />
-                </Stack>
-                <Typography variant="h5" fontWeight={700}>
-                  {stat.value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stat.label}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+          return (
+            <Box
+              key={item.id}
+              sx={{
+                borderBottom:
+                  idx < items.length - 1 ? `1px solid ${theme.palette.divider}` : "none",
+              }}
+            >
+              {/* Row header */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={2}
+                onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                sx={{
+                  px: 3,
+                  py: 2,
+                  cursor: "pointer",
+                  bgcolor: isExpanded
+                    ? alpha(theme.palette.primary.main, 0.04)
+                    : "background.paper",
+                  "&:hover": {
+                    bgcolor: alpha(theme.palette.primary.main, 0.06),
+                  },
+                  transition: "background-color 0.15s",
+                }}
+              >
+                {/* Expand icon */}
+                <Box sx={{ color: "text.secondary", display: "flex" }}>
+                  {isExpanded ? <ExpandLess /> : <ExpandMore />}
+                </Box>
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6" fontWeight={600}>
-                  Recent Assets
-                </Typography>
-                <TextField
-                  select
+                {/* Asset type chip */}
+                <Chip
+                  icon={typeIcon[item.type]}
+                  label={item.type}
                   size="small"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  sx={{ minWidth: 160 }}
-                >
-                  <MenuItem value="all">All statuses</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="failed">Failed</MenuItem>
-                </TextField>
-              </Stack>
-              <Divider sx={{ mb: 2 }} />
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Size</TableCell>
-                    <TableCell>Owner</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Progress</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredRows.map((row) => {
-                    const chip = statusChip[row.status];
-                    return (
-                      <TableRow key={row.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
-                            {row.name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>{row.type}</TableCell>
-                        <TableCell>{row.size}</TableCell>
-                        <TableCell>{row.owner}</TableCell>
-                        <TableCell>
-                          <Chip icon={chip.icon} label={chip.label} color={chip.color} size="small" variant="outlined" />
-                        </TableCell>
-                        <TableCell sx={{ minWidth: 120 }}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={row.progress}
-                            color={row.status === "failed" ? "error" : "primary"}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small">
-                            <MoreVert fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Send Feedback
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={3}>
-                A mock form — nothing is sent anywhere.
-              </Typography>
-              <Stack spacing={2}>
-                <TextField label="Subject" size="small" fullWidth defaultValue="Showcase demo" />
-                <TextField
-                  label="Message"
-                  size="small"
-                  fullWidth
-                  multiline
-                  rows={5}
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Type something..."
+                  color={typeColor[item.type] as any}
+                  variant="outlined"
+                  sx={{ minWidth: 90 }}
                 />
-                <Button
-                  variant="contained"
-                  fullWidth
-                  disabled={!feedback.trim()}
-                  onClick={() => {
-                    setSubmitted(true);
-                    setFeedback("");
-                    setTimeout(() => setSubmitted(false), 3000);
-                  }}
+
+                {/* Name */}
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                  sx={{ flex: 1, fontFamily: "monospace" }}
                 >
-                  Submit
-                </Button>
-                {submitted && (
-                  <Alert severity="success" variant="outlined">
-                    Thanks! (not actually sent)
-                  </Alert>
+                  {item.name}
+                </Typography>
+
+                {/* Processed at */}
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                  {formatProcessedAt(item.processedAt)}
+                </Typography>
+
+                {/* Status */}
+                {complete ? (
+                  <Chip
+                    icon={<TaskAlt fontSize="small" />}
+                    label="Completo"
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    sx={{ minWidth: 100 }}
+                  />
+                ) : (
+                  <Box sx={{ minWidth: 160 }}>
+                    <Stack direction="row" justifyContent="space-between" mb={0.5}>
+                      <Typography variant="caption" color="text.secondary">
+                        {reviewed}/{total} revisionati
+                      </Typography>
+                      <Typography variant="caption" color="warning.main" fontWeight={600}>
+                        {pending} in attesa
+                      </Typography>
+                    </Stack>
+                    <LinearProgress
+                      variant="determinate"
+                      value={(reviewed / total) * 100}
+                      color="warning"
+                      sx={{ height: 4, borderRadius: 2 }}
+                    />
+                  </Box>
                 )}
               </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+
+              {/* Expanded detail */}
+              <Collapse in={isExpanded} unmountOnExit>
+                <Box
+                  sx={{
+                    px: 3,
+                    pb: 2,
+                    pt: 1,
+                    bgcolor: alpha(theme.palette.background.default, 0.5),
+                    borderTop: `1px solid ${theme.palette.divider}`,
+                  }}
+                >
+                  <Table size="small">
+                    <TableBody>
+                      {item.fields.map((field) => {
+                        const isApproved = field.status === "approved";
+                        const isRejected = field.status === "rejected";
+
+                        return (
+                          <TableRow
+                            key={field.id}
+                            sx={{
+                              bgcolor: isApproved
+                                ? alpha(theme.palette.success.main, 0.07)
+                                : isRejected
+                                ? alpha(theme.palette.error.main, 0.07)
+                                : "transparent",
+                              "&:last-child td": { border: 0 },
+                              transition: "background-color 0.2s",
+                            }}
+                          >
+                            {/* Label */}
+                            <TableCell sx={{ width: 160, fontWeight: 600, color: "text.secondary" }}>
+                              {field.label}
+                            </TableCell>
+
+                            {/* Value */}
+                            <TableCell sx={{ flex: 1 }}>
+                              {editingFieldId === field.id ? (
+                                <TextField
+                                  inputRef={inputRef}
+                                  size="small"
+                                  fullWidth
+                                  value={draftValue}
+                                  onChange={(e) => setDraftValue(e.target.value)}
+                                  onBlur={() => commitEdit(item.id, field.id, Array.isArray(field.value))}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") commitEdit(item.id, field.id, Array.isArray(field.value));
+                                    if (e.key === "Escape") setEditingFieldId(null);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  helperText={Array.isArray(field.value) ? "Valori separati da virgola" : undefined}
+                                  sx={{ "& .MuiInputBase-root": { fontSize: "0.875rem" } }}
+                                />
+                              ) : Array.isArray(field.value) ? (
+                                <Stack direction="row" flexWrap="wrap" gap={0.5} alignItems="center">
+                                  {field.value.map((v) => (
+                                    <Chip
+                                      key={v}
+                                      label={v}
+                                      size="small"
+                                      sx={{
+                                        textDecoration: isRejected ? "line-through" : "none",
+                                        opacity: isRejected ? 0.6 : 1,
+                                      }}
+                                    />
+                                  ))}
+                                  {field.status === "pending" && (
+                                    <Tooltip title="Modifica">
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => { e.stopPropagation(); startEdit(field); }}
+                                        sx={{ color: "text.disabled", "&:hover": { color: "text.primary" } }}
+                                      >
+                                        <EditIcon sx={{ fontSize: 14 }} />
+                                      </IconButton>
+                                    </Tooltip>
+                                  )}
+                                </Stack>
+                              ) : (
+                                <Stack direction="row" alignItems="center" gap={0.5}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      textDecoration: isRejected ? "line-through" : "none",
+                                      opacity: isRejected ? 0.6 : 1,
+                                    }}
+                                  >
+                                    {field.value}
+                                  </Typography>
+                                  {field.status === "pending" && (
+                                    <Tooltip title="Modifica">
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => { e.stopPropagation(); startEdit(field); }}
+                                        sx={{ color: "text.disabled", "&:hover": { color: "text.primary" } }}
+                                      >
+                                        <EditIcon sx={{ fontSize: 14 }} />
+                                      </IconButton>
+                                    </Tooltip>
+                                  )}
+                                </Stack>
+                              )}
+                            </TableCell>
+
+                            {/* Confidence */}
+                            <TableCell sx={{ width: 60, textAlign: "right" }}>
+                              <Typography
+                                variant="caption"
+                                color={
+                                  field.confidence >= 0.9
+                                    ? "success.main"
+                                    : field.confidence >= 0.75
+                                    ? "warning.main"
+                                    : "error.main"
+                                }
+                                fontWeight={600}
+                              >
+                                {Math.round(field.confidence * 100)}%
+                              </Typography>
+                            </TableCell>
+
+                            {/* Actions */}
+                            <TableCell sx={{ width: 96, textAlign: "right" }}>
+                              <Tooltip title="Approva">
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFieldStatus(
+                                      item.id,
+                                      field.id,
+                                      isApproved ? "pending" : "approved"
+                                    );
+                                  }}
+                                  sx={{
+                                    color: isApproved
+                                      ? "success.main"
+                                      : alpha(theme.palette.success.main, 0.35),
+                                    "&:hover": { color: "success.main" },
+                                  }}
+                                >
+                                  <CheckCircle fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Rifiuta">
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFieldStatus(
+                                      item.id,
+                                      field.id,
+                                      isRejected ? "pending" : "rejected"
+                                    );
+                                  }}
+                                  sx={{
+                                    color: isRejected
+                                      ? "error.main"
+                                      : alpha(theme.palette.error.main, 0.35),
+                                    "&:hover": { color: "error.main" },
+                                  }}
+                                >
+                                  <Cancel fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </Box>
+              </Collapse>
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 };
 
-export default ShowcasePage;
+export default ReviewPage;

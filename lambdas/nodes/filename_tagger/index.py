@@ -106,7 +106,7 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
     if not tag:
         logger.info(
             "filename_tagger: no tag rule matched",
-            extra={"inventory_id": inventory_id, "filename": filename},
+            extra={"inventory_id": inventory_id, "asset_filename": filename},
         )
         return {
             "status": "no_match",
@@ -118,7 +118,7 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
     _append_tag(inventory_id, tag)
     logger.info(
         "filename_tagger: applied tag",
-        extra={"inventory_id": inventory_id, "filename": filename, "tag": tag},
+        extra={"inventory_id": inventory_id, "asset_filename": filename, "tag": tag},
     )
 
     return {
