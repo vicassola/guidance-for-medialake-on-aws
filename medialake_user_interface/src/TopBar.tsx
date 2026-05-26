@@ -35,7 +35,7 @@ import {
   Settings as SettingsIcon,
   AutoAwesome as ShowcaseIcon,
 } from "@mui/icons-material";
-import { signOut, fetchUserAttributes } from "aws-amplify/auth";
+import { signOut, fetchUserAttributes, fetchAuthSession } from "aws-amplify/auth";
 import { useAuth } from "./common/hooks/auth-context";
 import { usePermission } from "./permissions";
 import { useFeatureFlag } from "./contexts/FeatureFlagsContext";
@@ -109,12 +109,23 @@ function TopBar() {
   // ── User info ──────────────────────────────────────────────────
   const [userInitial, setUserInitial] = useState("U");
   const [userName, setUserName] = useState("");
+  const [userGroup, setUserGroup] = useState("");
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+
+  const GROUP_DISPLAY_NAMES: Record<string, string> = {
+    superAdministrators: "Super Administrator",
+    editors: "Editor",
+    reviewers: "Reviewer",
+    "read-only": "Read Only",
+  };
 
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
-        const attributes = await fetchUserAttributes();
+        const [attributes, session] = await Promise.all([
+          fetchUserAttributes(),
+          fetchAuthSession(),
+        ]);
         if (attributes.given_name?.trim()) {
           setUserInitial(attributes.given_name.trim()[0].toUpperCase());
           setUserName(attributes.given_name.trim());
@@ -122,6 +133,10 @@ function TopBar() {
           setUserInitial(attributes.email.trim()[0].toUpperCase());
           setUserName(attributes.email.trim());
         }
+        const groups =
+          (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) ?? [];
+        const primary = groups[0] ?? "";
+        setUserGroup(GROUP_DISPLAY_NAMES[primary] ?? primary);
       } catch (error) {
         console.error(t("app.errors.loadingUserAttributes", "Error loading user attributes:"), error);
       }
@@ -905,8 +920,13 @@ function TopBar() {
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
           {userName && (
-            <MenuItem disabled sx={{ opacity: "1 !important" }}>
+            <MenuItem disabled sx={{ opacity: "1 !important", flexDirection: "column", alignItems: "flex-start", py: 1 }}>
               <Typography variant="body2" fontWeight={600}>{userName}</Typography>
+              {userGroup && (
+                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
+                  {userGroup}
+                </Typography>
+              )}
             </MenuItem>
           )}
           <MenuItem onClick={handleLogout}>{t("sidebar.logout", "Logout")}</MenuItem>

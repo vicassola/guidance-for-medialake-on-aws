@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { signOut, fetchUserAttributes } from "aws-amplify/auth";
 import { useAuth } from "./common/hooks/auth-context";
-import { StorageHelper } from "./common/helpers/storage-helper";
 import { useDirection } from "./contexts/DirectionContext";
 import { Can, usePermission, DisabledWrapper } from "./permissions";
 import { useFeatureFlag } from "./contexts/FeatureFlagsContext";
@@ -50,6 +49,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useTheme as useCustomTheme } from "./hooks/useTheme";
 import { useSidebar } from "./contexts/SidebarContext";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { useGetUsers } from "@/api/hooks/useUsers";
 
 import { drawerWidth, collapsedDrawerWidth, springEasing } from "@/constants";
 import { zIndexTokens } from "@/theme/tokens";
@@ -60,7 +60,7 @@ function Sidebar() {
   const { theme: customTheme } = useCustomTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const { setIsAuthenticated } = useAuth();
+  const { setIsAuthenticated, isAuthenticated, isInitialized } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const { direction } = useDirection();
@@ -68,7 +68,7 @@ function Sidebar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [userInitial, setUserInitial] = useState("U");
   const [userName, setUserName] = useState("");
-  const [userGroup, setUserGroup] = useState("");
+  const [userEmail, setUserEmail] = useState("");
 
   const GROUP_DISPLAY_NAMES: Record<string, string> = {
     superAdministrators: "Super Administrator",
@@ -77,26 +77,28 @@ function Sidebar() {
     "read-only": "Read Only",
   };
 
+  const { data: allUsers } = useGetUsers(isAuthenticated && isInitialized);
+
+  const userGroup = useMemo(() => {
+    if (!userEmail || !allUsers) return "";
+    const me = allUsers.find(
+      (u) => u.email?.toLowerCase() === userEmail.toLowerCase()
+    );
+    const primary = me?.groups?.[0] ?? "";
+    return GROUP_DISPLAY_NAMES[primary] ?? primary;
+  }, [allUsers, userEmail]);
+
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
         const attributes = await fetchUserAttributes();
+        if (attributes.email) setUserEmail(attributes.email);
         if (attributes.given_name && attributes.given_name.trim()) {
           setUserInitial(attributes.given_name.trim()[0].toUpperCase());
           setUserName(attributes.given_name.trim());
         } else if (attributes.email && attributes.email.trim()) {
           setUserInitial(attributes.email.trim()[0].toUpperCase());
           setUserName(attributes.email.trim());
-        }
-        const token = StorageHelper.getToken();
-        if (token) {
-          const parts = token.split(".");
-          if (parts.length === 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            const groups: string[] = payload["cognito:groups"] ?? [];
-            const primaryGroup = groups[0] ?? "";
-            setUserGroup(GROUP_DISPLAY_NAMES[primaryGroup] ?? primaryGroup);
-          }
         }
       } catch (error) {
         console.error(

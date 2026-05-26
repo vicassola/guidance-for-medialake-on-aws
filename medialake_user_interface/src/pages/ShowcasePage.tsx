@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -13,6 +13,7 @@ import {
   TableCell,
   LinearProgress,
   TextField,
+  Button,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -27,7 +28,9 @@ import {
   Description,
   TaskAlt,
   Edit as EditIcon,
+  Download as DownloadIcon,
 } from "@mui/icons-material";
+import { fetchUserAttributes } from "aws-amplify/auth";
 
 type FieldStatus = "pending" | "approved" | "rejected";
 
@@ -138,13 +141,102 @@ function formatProcessedAt(iso: string) {
   });
 }
 
+const escapeXml = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+
+const valueToString = (v: string | string[]) => (Array.isArray(v) ? v.join(", ") : v);
+
+type FieldChange = {
+  field: ReviewField;
+  original: ReviewField;
+  statusChanged: boolean;
+  valueChanged: boolean;
+};
+
+function computeChanges(items: ReviewItem[]): { item: ReviewItem; changes: FieldChange[] }[] {
+  return items
+    .map((item) => {
+      const original = initialItems.find((i) => i.id === item.id);
+      if (!original) return { item, changes: [] };
+      const changes: FieldChange[] = item.fields.flatMap((f) => {
+        const orig = original.fields.find((ff) => ff.id === f.id);
+        if (!orig) return [];
+        const statusChanged = f.status !== orig.status;
+        const valueChanged = valueToString(f.value) !== valueToString(orig.value);
+        return statusChanged || valueChanged
+          ? [{ field: f, original: orig, statusChanged, valueChanged }]
+          : [];
+      });
+      return { item, changes };
+    })
+    .filter((entry) => entry.changes.length > 0);
+}
+
+function buildReviewXml(items: ReviewItem[], reviewer: string): string {
+  const ts = new Date().toISOString();
+  const entries = computeChanges(items);
+  const lines: string[] = [];
+  lines.push('<?xml version="1.0" encoding="UTF-8"?>');
+  lines.push(`<review timestamp="${ts}" reviewer="${escapeXml(reviewer || "unknown")}">`);
+  for (const { item, changes } of entries) {
+    lines.push(
+      `  <asset id="${escapeXml(item.id)}" name="${escapeXml(item.name)}" type="${item.type}">`
+    );
+    for (const c of changes) {
+      lines.push(
+        `    <field id="${escapeXml(c.field.id)}" label="${escapeXml(c.field.label)}" status="${c.field.status}"${c.statusChanged ? ` originalStatus="${c.original.status}"` : ""}>`
+      );
+      if (c.valueChanged) {
+        lines.push(
+          `      <originalValue>${escapeXml(valueToString(c.original.value))}</originalValue>`
+        );
+        lines.push(`      <newValue>${escapeXml(valueToString(c.field.value))}</newValue>`);
+      }
+      lines.push(`    </field>`);
+    }
+    lines.push(`  </asset>`);
+  }
+  lines.push("</review>");
+  return lines.join("\n");
+}
+
 const ReviewPage: React.FC = () => {
   const theme = useTheme();
   const [items, setItems] = useState<ReviewItem[]>(initialItems);
   const [expandedId, setExpandedId] = useState<string | null>("1");
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState("");
+  const [reviewerEmail, setReviewerEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchUserAttributes()
+      .then((a) => setReviewerEmail(a.email ?? ""))
+      .catch(() => undefined);
+  }, []);
+
+  const changeCount = useMemo(
+    () => computeChanges(items).reduce((acc, e) => acc + e.changes.length, 0),
+    [items]
+  );
+
+  const handleDownloadXml = () => {
+    const xml = buildReviewXml(items, reviewerEmail);
+    const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `review-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const startEdit = (field: ReviewField) => {
     setEditingFieldId(field.id);
@@ -195,6 +287,24 @@ const ReviewPage: React.FC = () => {
               : "Tutti gli asset sono stati revisionati."}
           </Typography>
         </Box>
+        <Tooltip
+          title={
+            changeCount === 0
+              ? "Nessuna modifica da esportare"
+              : `Esporta ${changeCount} modific${changeCount === 1 ? "a" : "he"} in XML`
+          }
+        >
+          <span>
+            <Button
+              variant="contained"
+              startIcon={<DownloadIcon />}
+              onClick={handleDownloadXml}
+              disabled={changeCount === 0}
+            >
+              Scarica XML
+            </Button>
+          </span>
+        </Tooltip>
       </Stack>
 
       <Box
