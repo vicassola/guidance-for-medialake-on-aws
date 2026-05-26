@@ -28,8 +28,8 @@ def lambda_handler(event, context: LambdaContext):
     logger.debug("Received event: %s", json.dumps(event))
     logger.info(f"Using event bus: {EVENT_BUS_NAME}")
 
-    # Pull pipelineName from the new payload shape
-    input_payload = event.get("payload", {}).get("event", {}).get("input", {}) or {}
+    # Pull fields forwarded by upstream nodes from payload.data (middleware-standardised shape)
+    input_payload = event.get("payload", {}).get("data", {}) or {}
     pipeline_name = input_payload.get("pipelineName", "Default Image Pipeline")
 
     # Extract configurable parameters from environment variables first, then input payload as fallback
