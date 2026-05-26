@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { signOut, fetchUserAttributes, fetchAuthSession } from "aws-amplify/auth";
+import { signOut, fetchUserAttributes } from "aws-amplify/auth";
 import { useAuth } from "./common/hooks/auth-context";
+import { StorageHelper } from "./common/helpers/storage-helper";
 import { useDirection } from "./contexts/DirectionContext";
 import { Can, usePermission, DisabledWrapper } from "./permissions";
 import { useFeatureFlag } from "./contexts/FeatureFlagsContext";
@@ -79,10 +80,7 @@ function Sidebar() {
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
-        const [attributes, session] = await Promise.all([
-          fetchUserAttributes(),
-          fetchAuthSession(),
-        ]);
+        const attributes = await fetchUserAttributes();
         if (attributes.given_name && attributes.given_name.trim()) {
           setUserInitial(attributes.given_name.trim()[0].toUpperCase());
           setUserName(attributes.given_name.trim());
@@ -90,9 +88,16 @@ function Sidebar() {
           setUserInitial(attributes.email.trim()[0].toUpperCase());
           setUserName(attributes.email.trim());
         }
-        const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) ?? [];
-        const primaryGroup = groups[0] ?? "";
-        setUserGroup(GROUP_DISPLAY_NAMES[primaryGroup] ?? primaryGroup);
+        const token = StorageHelper.getToken();
+        if (token) {
+          const parts = token.split(".");
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            const groups: string[] = payload["cognito:groups"] ?? [];
+            const primaryGroup = groups[0] ?? "";
+            setUserGroup(GROUP_DISPLAY_NAMES[primaryGroup] ?? primaryGroup);
+          }
+        }
       } catch (error) {
         console.error(
           t("app.errors.loadingUserAttributes", "Error loading user attributes:"),
