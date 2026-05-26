@@ -54,6 +54,10 @@ def lambda_handler(event, context: LambdaContext):
         "pipelineName": pipeline_name,
         "status": "SUCCESS",
         "outputs": event,
+        # Expose at top level so downstream middleware recognises this as a
+        # standardised event (case 2b) and passes assets through correctly.
+        "metadata": event.get("metadata", {}),
+        "payload": event.get("payload", {}),
     }
 
     entries = [
