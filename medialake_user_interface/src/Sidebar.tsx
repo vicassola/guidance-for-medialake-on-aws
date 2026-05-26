@@ -716,7 +716,7 @@ function Sidebar() {
                 onClick={handleProfileClick}
                 sx={{
                   width: "100%",
-                  height: 40,
+                  minHeight: 40,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "flex-start",
