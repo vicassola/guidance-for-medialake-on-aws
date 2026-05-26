@@ -108,7 +108,15 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: LazyHome },
-      { path: "review", element: LazyReviewPage },
+      {
+        path: "review",
+        element: (
+          <RoutePermissionGuard
+            permission={{ action: "view", subject: "reviews" }}
+            element={LazyReviewPage}
+          />
+        ),
+      },
       {
         path: "search",
         element: (

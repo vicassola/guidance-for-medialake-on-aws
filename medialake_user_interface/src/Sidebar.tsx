@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { signOut, fetchUserAttributes } from "aws-amplify/auth";
+import { signOut, fetchUserAttributes, fetchAuthSession } from "aws-amplify/auth";
 import { useAuth } from "./common/hooks/auth-context";
 import { useDirection } from "./contexts/DirectionContext";
 import { Can, usePermission, DisabledWrapper } from "./permissions";
@@ -67,11 +67,22 @@ function Sidebar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [userInitial, setUserInitial] = useState("U");
   const [userName, setUserName] = useState("");
+  const [userGroup, setUserGroup] = useState("");
+
+  const GROUP_DISPLAY_NAMES: Record<string, string> = {
+    superAdministrators: "Super Administrator",
+    editors: "Editor",
+    reviewers: "Reviewer",
+    "read-only": "Read Only",
+  };
 
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
-        const attributes = await fetchUserAttributes();
+        const [attributes, session] = await Promise.all([
+          fetchUserAttributes(),
+          fetchAuthSession(),
+        ]);
         if (attributes.given_name && attributes.given_name.trim()) {
           setUserInitial(attributes.given_name.trim()[0].toUpperCase());
           setUserName(attributes.given_name.trim());
@@ -79,6 +90,9 @@ function Sidebar() {
           setUserInitial(attributes.email.trim()[0].toUpperCase());
           setUserName(attributes.email.trim());
         }
+        const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) ?? [];
+        const primaryGroup = groups[0] ?? "";
+        setUserGroup(GROUP_DISPLAY_NAMES[primaryGroup] ?? primaryGroup);
       } catch (error) {
         console.error(
           t("app.errors.loadingUserAttributes", "Error loading user attributes:"),
@@ -158,6 +172,11 @@ function Sidebar() {
     }
   }, [safePermissionCheck]);
 
+  const canViewReview = useMemo(
+    () => safePermissionCheck("view", "reviews") ?? false,
+    [safePermissionCheck]
+  );
+
   // Build menu items based on permissions
   // Items are always shown but greyed out when user lacks permission,
   // except admin-only items (Settings) which are hidden entirely for non-admins.
@@ -174,7 +193,8 @@ function Sidebar() {
       icon: <ShowcaseIcon />,
       path: "/review",
       disabled: false,
-      adminOnly: false,
+      adminOnly: true,
+      visible: canViewReview,
       badge: "DEMO",
     },
     {
@@ -713,15 +733,25 @@ function Sidebar() {
                 >
                   {userInitial}
                 </Avatar>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: theme.palette.text.primary,
-                    fontWeight: 500,
-                  }}
-                >
-                  {userName}
-                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: theme.palette.text.primary,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {userName}
+                  </Typography>
+                  {userGroup && (
+                    <Typography
+                      variant="caption"
+                      sx={{ color: theme.palette.text.secondary, lineHeight: 1.2 }}
+                    >
+                      {userGroup}
+                    </Typography>
+                  )}
+                </Box>
               </Button>
             )}
 

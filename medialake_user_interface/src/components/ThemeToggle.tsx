@@ -5,7 +5,6 @@ import {
   ListItem,
   ListItemButton,
   Tooltip,
-  Typography,
   useTheme as useMuiTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -16,7 +15,6 @@ import {
 } from "@mui/icons-material";
 import { useTheme } from "../hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import { useDirection } from "../contexts/DirectionContext";
 
 interface ThemeToggleProps {
   isCollapsed?: boolean;
@@ -26,8 +24,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false })
   const { t } = useTranslation();
   const muiTheme = useMuiTheme();
   const { theme, mode, setMode } = useTheme();
-  const { direction } = useDirection();
-  const isRTL = direction === "rtl";
 
   if (isCollapsed) {
     return (
@@ -60,18 +56,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false })
           px: 2,
         }}
       >
-        <Typography
-          variant="body2"
-          sx={{
-            mb: 1,
-            color: muiTheme.palette.text.secondary,
-            px: 1,
-            textAlign: isRTL ? "right" : "left",
-            width: "100%",
-          }}
-        >
-          {t("common.theme")}
-        </Typography>
         <Box
           sx={{
             display: "flex",

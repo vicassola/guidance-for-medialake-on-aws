@@ -44,7 +44,8 @@ export type Subjects =
   | "execution"
   | "node"
   | "dashboard"
-  | "defaultDashboard";
+  | "defaultDashboard"
+  | "reviews";
 
 // Define the conditions type for subject-based authorization
 export type Conditions = MongoQuery;
