@@ -1,0 +1,1 @@
+{"nodes": [{"id": "csp_header_modifier_requirements_lambda", "label": "csp_header_modifier edge lambda", "file_type": "code", "source_file": "lambdas/edge/csp_header_modifier/requirements.txt", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}

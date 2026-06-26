@@ -35,7 +35,7 @@ PREFIX_GROUP = "GROUP#"
 PREFIX_METADATA = "METADATA"
 
 # Permission set schema version - increment this to force update of system permission sets
-PERMISSION_SCHEMA_VERSION = "2.4.0"
+PERMISSION_SCHEMA_VERSION = "2.5.0"
 
 # Default groups definitions
 DEFAULT_GROUPS = [
@@ -52,6 +52,13 @@ DEFAULT_GROUPS = [
         "description": "Content editors who can create, modify, and manage media assets",
         "department": "Content Management",
         "assignedPermissionSets": ["editor"],
+    },
+    {
+        "id": "reviewers",
+        "name": "Reviewer",
+        "description": "Read-only access to assets plus the ability to view and edit reviews",
+        "department": "Review",
+        "assignedPermissionSets": ["reviewer"],
     },
     {
         "id": "read-only",
@@ -312,6 +319,25 @@ DEFAULT_PERMISSION_SETS = [
             "storage": {
                 "view": True,
             },
+        },
+    },
+    {
+        "id": "reviewer",
+        "name": "Reviewer",
+        "description": "Read-only access to assets plus view/edit on the Review tab",
+        "isSystem": True,
+        "effectiveRole": "Reviewer",
+        "permissions": {
+            "assets": {"upload": False, "download": True, "view": True, "edit": False, "delete": False},
+            "reviews": {"view": True, "edit": True, "delete": False},
+            "search": {"view": True},
+            "dashboard": {"view": True},
+            "collections": {"create": False, "view": True, "edit": False, "delete": False},
+            "system": {"view": True, "edit": False},
+            "connectors": {"view": True},
+            "nodes": {"view": True},
+            "regions": {"view": True},
+            "storage": {"view": True},
         },
     },
 ]

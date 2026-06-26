@@ -271,6 +271,11 @@ class CognitoConstruct(Construct):
                 precedence=20,
             ),
             CognitoGroupConfig(
+                name="reviewers",
+                description="Review-only access: can view assets and read/edit reviews",
+                precedence=30,
+            ),
+            CognitoGroupConfig(
                 name="read-only",
                 description="Read-only access to media assets",
                 precedence=40,

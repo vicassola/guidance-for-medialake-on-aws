@@ -1,0 +1,49 @@
+Area,#,Attività,Difficoltà,Stima (giorni),UX Impact
+Foundation,0.1,Setup progetto: framework + bundler + linting + CI + deploy pipeline CDK,Low,3,Low
+Foundation,0.2,Design system / component library: scegliere e configurare + theming (dark/light),Medium,5,High
+Foundation,0.3,Routing e layout shell: sidebar + navbar + route guards + lazy loading,Low,3,High
+Auth & Bootstrap,1.1,Caricamento aws-exports.json a runtime e inizializzazione Amplify,Low,1,Low
+Auth & Bootstrap,1.2,Flow Cognito: login + logout + OAuth2 + token refresh automatico (60s prima di expiry),High,5,High
+Auth & Bootstrap,1.3,API client base: axios con interceptor auth header + response unwrapping,Low,2,Low
+Permessi AVP,2.1,Permission context + ability factory + cache token (global + per-resource),High,5,Low
+Permessi AVP,2.2,Componenti <Can> + <PermissionGuard> + <DisabledWrapper>,Medium,3,Medium
+Permessi AVP,2.3,Hook usePermission / useActionPermission + integrazione su ogni feature,Medium,3,Medium
+Dashboard,3.1,Layout configurabile (drag & resize widget),Medium,4,Medium
+Dashboard,3.2,Widget: statistiche + activity feed + connectors status,Medium,4,Medium
+Asset Explorer,4.1,Lista asset: tabella + grid card + sorting + paginazione,Medium,4,High
+Asset Explorer,4.2,Faceted filter panel (filtri lato search + multi-select + range),Medium,4,High
+Asset Explorer,4.3,Asset detail: metadata + thumbnail + azioni (rename + delete + download + share),Medium,5,High
+Asset Explorer,4.4,Upload asset: drag & drop + multipart S3 + progress tracking,High,5,High
+Asset Explorer,4.5,Bulk operations: selezione multipla + bulk download + bulk delete,Medium,3,Medium
+Media Player,5.1,Integrazione OmakasePlayer (libreria custom AWS) con theming,High,5,High
+Media Player,5.2,Keyboard shortcuts (usePlayerKeyboardShortcutsCore),Medium,3,Medium
+Media Player,5.3,Marker sync: MarkerSyncCoordinator + timeline tracks + sincronizzazione frame,High,6,High
+Search,6.1,Search bar globale + suggerimenti,Low,2,High
+Search,6.2,Risultati full-text con highlight + paginazione,Medium,3,High
+Search,6.3,Filtri avanzati (facets + date range + tipo media),Medium,4,High
+Collections & Collection Groups,7.1,CRUD collections: create + edit + delete + lista,Low,3,Medium
+Collections & Collection Groups,7.2,Sharing collections (permessi per utente/gruppo),Medium,4,Medium
+Collections & Collection Groups,7.3,Collection groups: CRUD + gestione membership,Medium,3,Low
+Pipeline Editor,8.1,Canvas visuale con ReactFlow: nodi + edge + drag & drop,High,8,High
+Pipeline Editor,8.2,CustomNode e CustomEdge con stati (running + success + error),High,5,High
+Pipeline Editor,8.3,Sidebar nodi disponibili + ricerca + drag-to-canvas,Medium,3,High
+Pipeline Editor,8.4,NodeConfigurationForm: form dinamico per parametri di ogni nodo,High,6,High
+Pipeline Editor,8.5,Save/load pipeline + validazione grafo (cicli + connessioni obbligatorie),High,5,High
+Pipeline Editor,8.6,JobStatusNode: real-time status durante esecuzione,High,4,High
+Esecuzioni Pipeline,9.1,Lista esecuzioni con stato (running + completed + failed),Low,2,Medium
+Esecuzioni Pipeline,9.2,Dettaglio esecuzione: log + errori + output per nodo,Medium,4,Medium
+Settings: Connectors,10.1,Lista connector (S3 + GDrive ecc.) + CRUD + test connessione,Medium,5,Medium
+Settings: Environments & Integrations,11.1,Environment list + EnvironmentForm con validazione,Medium,4,Low
+Settings: Environments & Integrations,11.2,Integration list + IntegrationForm (form multi-step + SelectNodeModal),High,6,Medium
+Settings: User Management & Roles,12.1,Lista utenti + invite + edit + disable,Low,3,Low
+Settings: User Management & Roles,12.2,Gestione gruppi Cognito,Medium,3,Low
+Settings: User Management & Roles,12.3,Roles & permissions UI (assegnazione policy AVP),High,5,Medium
+Settings: System & API Keys,13.1,System settings generali,Low,2,Low
+Settings: System & API Keys,13.2,API key management (generate + revoke + lista),Low,2,Low
+Chat,14.1,Chat UI: thread + messaggi + streaming response,Medium,5,High
+i18n,15.1,Setup i18next + RTL support (ar + he),Medium,3,Medium
+i18n,15.2,Traduzione di tutti i testi UI nelle 11 lingue,Low,10,Medium
+Testing & QA,16.1,Unit test (Vitest): hook + utility + permission logic,Medium,8,Low
+Testing & QA,16.2,E2E (Playwright): golden path per ogni feature,Medium,10,Low
+CDK Integration & Deploy,17.1,Aggiornare userInterface.py CDK per deployare il nuovo build,Low,2,Low
+CDK Integration & Deploy,17.2,Staging environment + smoke test post-deploy,Low,2,Low
