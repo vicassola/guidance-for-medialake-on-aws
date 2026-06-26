@@ -3,6 +3,21 @@ import { StorageHelper } from "../helpers/storage-helper";
 import { Amplify } from "aws-amplify";
 import { useTranslation } from "react-i18next";
 
+const IS_MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === "true";
+
+const MOCK_AWS_CONFIG = {
+  Auth: {
+    identity_providers: [{ identity_provider_method: "cognito" as const }],
+    Cognito: {
+      userPoolId: "us-east-1_mock",
+      userPoolClientId: "mock-client-id",
+      identityPoolId: "us-east-1:00000000-mock",
+      domain: "mock.auth.us-east-1.amazoncognito.com",
+    },
+  },
+  API: { REST: {} },
+};
+
 interface IdentityProvider {
   identity_provider_method: "cognito" | "saml";
   identity_provider_name?: string;
@@ -95,6 +110,7 @@ export const AwsConfigProvider = ({ children }: AwsConfigProviderProps) => {
   // Synchronous fast-path: read config from localStorage before first render
   // so we never flash a loading screen when the config is already cached.
   const [awsConfig, setAwsConfig] = useState<AwsConfig | null>(() => {
+    if (IS_MOCK_AUTH) return MOCK_AWS_CONFIG;
     const stored = StorageHelper.getAwsConfig();
     if (stored) {
       configureAmplify(stored);
@@ -102,9 +118,11 @@ export const AwsConfigProvider = ({ children }: AwsConfigProviderProps) => {
     }
     return null;
   });
-  const [isLoading, setIsLoading] = useState(awsConfig === null);
+  const [isLoading, setIsLoading] = useState(!IS_MOCK_AUTH && awsConfig === null);
 
   useEffect(() => {
+    // Skip fetch entirely in mock mode
+    if (IS_MOCK_AUTH) return;
     // If we already loaded from localStorage synchronously, nothing to do
     if (awsConfig) return;
 

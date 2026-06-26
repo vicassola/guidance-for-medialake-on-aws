@@ -4,6 +4,31 @@ import { authService } from "../../api/authService";
 import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth";
 import { useAwsConfig } from "./aws-config-context";
 
+const IS_MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === "true";
+
+// Fake JWT injected when VITE_MOCK_AUTH=true. Gives admin group + all permissions.
+// Signature is not verified — only the payload claims matter in dev.
+const MOCK_JWT = (() => {
+  if (!IS_MOCK_AUTH) return "";
+  const b64url = (obj: object) =>
+    btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const header = b64url({ alg: "HS256", typ: "JWT" });
+  const payload = b64url({
+    sub: "dev-local-user",
+    email: "dev@local.test",
+    "cognito:username": "dev-user",
+    "cognito:groups": ["admin"],
+    "custom:permissions": JSON.stringify(["manage:all"]),
+    exp: 9999999999,
+    iat: Math.floor(Date.now() / 1000),
+  });
+  return `${header}.${payload}.mock-sig`;
+})();
+
+if (IS_MOCK_AUTH) {
+  StorageHelper.setToken(MOCK_JWT);
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   setIsAuthenticated: (isAuthenticated: boolean) => void;
@@ -48,6 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // keeps showing the current page instead of flashing a spinner.
   const performAuthCheck = useCallback(
     async (silent: boolean) => {
+      if (IS_MOCK_AUTH) {
+        StorageHelper.setToken(MOCK_JWT);
+        setIsAuthenticated(true);
+        if (!silent) setIsLoading(false);
+        setIsInitialized(true);
+        return;
+      }
       if (!silent) {
         setIsLoading(true);
       }

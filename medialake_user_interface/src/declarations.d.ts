@@ -27,3 +27,11 @@ declare module "*.webp" {
   const src: string;
   export default src;
 }
+
+interface ImportMetaEnv {
+  readonly VITE_MOCK_AUTH?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

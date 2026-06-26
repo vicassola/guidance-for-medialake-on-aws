@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   Box,
   useTheme as useMuiTheme,
@@ -15,8 +15,6 @@ import {
   MenuItem,
   Tooltip,
   Typography,
-  Collapse,
-  Button as MuiButton,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Button } from "@/components/common";
@@ -27,17 +25,9 @@ import {
   Chat as ChatIcon,
   Clear as ClearIcon,
   Close as CloseIcon,
-  Home as HomeIcon,
-  PermMedia as MediaAssetsIcon,
-  Folder as FolderIcon,
-  AccountTree as PipelineIcon,
-  PlaylistPlay as ExecutionsIcon,
-  Settings as SettingsIcon,
-  AutoAwesome as ShowcaseIcon,
 } from "@mui/icons-material";
 import { signOut, fetchUserAttributes, fetchAuthSession } from "aws-amplify/auth";
 import { useAuth } from "./common/hooks/auth-context";
-import { usePermission } from "./permissions";
 import { useFeatureFlag } from "./contexts/FeatureFlagsContext";
 import { useChat } from "./contexts/ChatContext";
 import { useNavigate, useLocation } from "react-router";
@@ -54,7 +44,10 @@ import {
   useSemanticSearch,
   useDomainActions,
   useUIActions,
+  useActiveFilterCount,
 } from "./stores/searchStore";
+import { FilterPanel } from "./components/TopBar/FilterPanel";
+import { ActiveFiltersBar } from "./components/TopBar/ActiveFiltersBar";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { QUERY_KEYS } from "./api/queryKeys";
 import SemanticModeToggle from "./components/TopBar/SemanticModeToggle";
@@ -94,9 +87,12 @@ function TopBar() {
   const { openFilterModal } = useUIActions();
   const [searchResults, setSearchResults] = useState<any>(null);
 
+  const activeFilterCount = useActiveFilterCount();
+
   // ── Upload / Modals ────────────────────────────────────────────
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSemanticConfigDialogOpen, setIsSemanticConfigDialogOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   // ── Chat ───────────────────────────────────────────────────────
   const isChatEnabled = useFeatureFlag("chat-enabled", true);
@@ -144,64 +140,6 @@ function TopBar() {
     loadUserInfo();
   }, []);
 
-  // ── Permissions ────────────────────────────────────────────────
-  const { ability } = usePermission();
-
-  const safePermissionCheck = useCallback(
-    (action: string, resource: string) => {
-      try {
-        return ability?.can(action as any, resource as any) ?? false;
-      } catch {
-        return false;
-      }
-    },
-    [ability]
-  );
-
-  const canViewPipeline = useMemo(
-    () => { try { return ability?.can("view", "pipeline") ?? false; } catch { return false; } },
-    [ability]
-  );
-
-  const canViewSettings = useMemo(
-    () => safePermissionCheck("view", "settings-menu"),
-    [safePermissionCheck]
-  );
-
-  const canViewReview = useMemo(
-    () => safePermissionCheck("view", "reviews"),
-    [safePermissionCheck]
-  );
-
-  // ── Settings dropdown ──────────────────────────────────────────
-  const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(null);
-
-  const settingsSubItems = [
-    { text: t("sidebar.submenu.connectors"), path: "/settings/connectors" },
-    { text: t("sidebar.submenu.usersAndGroups", "Users and Groups"), path: "/settings/users" },
-    { text: t("sidebar.submenu.permissions", "Permissions"), path: "/settings/permissions" },
-    { text: t("sidebar.submenu.integrations"), path: "/settings/integrations" },
-    { text: t("sidebar.submenu.system"), path: "/settings/system" },
-  ];
-
-  // ── Nav items ──────────────────────────────────────────────────
-  const navItems = useMemo(() => {
-    const items = [
-      { text: t("sidebar.menu.home"), icon: <HomeIcon fontSize="small" />, path: "/" },
-      ...(canViewReview
-        ? [{ text: "Review", icon: <ShowcaseIcon fontSize="small" />, path: "/review", badge: "DEMO" }]
-        : []),
-      { text: t("sidebar.menu.assets"), icon: <MediaAssetsIcon fontSize="small" />, path: "/assets" },
-      { text: t("sidebar.menu.collections"), icon: <FolderIcon fontSize="small" />, path: "/collections" },
-      ...(canViewPipeline
-        ? [
-            { text: t("sidebar.menu.pipelines"), icon: <PipelineIcon fontSize="small" />, path: "/pipelines" },
-            { text: t("sidebar.menu.pipelineExecutions"), icon: <ExecutionsIcon fontSize="small" />, path: "/executions" },
-          ]
-        : []),
-    ];
-    return items;
-  }, [t, canViewPipeline, canViewReview]);
 
   // ── Auto-expand search on /search page ────────────────────────
   useEffect(() => {
@@ -471,7 +409,6 @@ function TopBar() {
   };
   const handleUploadComplete = (_files: any[]) => handleCloseUploadModal();
   const handleCloseUploadModal = () => setIsUploadModalOpen(false);
-  const handleOpenFilterModal = () => openFilterModal();
 
   const handleLogout = async () => {
     try {
@@ -484,15 +421,9 @@ function TopBar() {
     setUserMenuAnchor(null);
   };
 
-  const hasActiveFilters = Object.keys(filters).filter((k) => k !== "date_range_option").length > 0;
-
-  const isNavActive = (path: string) => {
-    if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
-  };
-
   // ── Render ────────────────────────────────────────────────────
   return (
+    <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
     <Box
       sx={{
         display: "flex",
@@ -517,118 +448,7 @@ function TopBar() {
         onClick={() => navigate("/")}
       />
 
-      {/* Horizontal nav items — hidden when search is expanded */}
-      {!isSearchExpanded && (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            flexShrink: 0,
-          }}
-        >
-          {navItems.map((item) => (
-            <MuiButton
-              key={item.path}
-              variant="text"
-              size="small"
-              onClick={() => navigate(item.path)}
-              sx={{
-                px: 1.5,
-                py: 0.75,
-                minWidth: 0,
-                fontWeight: isNavActive(item.path) ? 700 : 400,
-                color: isNavActive(item.path)
-                  ? muiTheme.palette.primary.main
-                  : muiTheme.palette.text.secondary,
-                borderBottom: isNavActive(item.path)
-                  ? `2px solid ${muiTheme.palette.primary.main}`
-                  : "2px solid transparent",
-                borderRadius: 0,
-                fontSize: "0.875rem",
-                textTransform: "none",
-                whiteSpace: "nowrap",
-                "&:hover": {
-                  backgroundColor: alpha(muiTheme.palette.primary.main, 0.06),
-                  color: muiTheme.palette.text.primary,
-                },
-              }}
-            >
-              {item.text}
-              {"badge" in item && (item as any).badge && (
-                <Chip
-                  label={(item as any).badge}
-                  size="small"
-                  color="error"
-                  sx={{
-                    ml: 0.5,
-                    height: 16,
-                    fontSize: "0.55rem",
-                    fontWeight: 700,
-                    "& .MuiChip-label": { px: 0.5 },
-                  }}
-                />
-              )}
-            </MuiButton>
-          ))}
-
-          {/* Settings dropdown */}
-          {canViewSettings && (
-            <>
-              <MuiButton
-                variant="text"
-                size="small"
-                onClick={(e) => setSettingsAnchor(e.currentTarget)}
-                sx={{
-                  px: 1.5,
-                  py: 0.75,
-                  minWidth: 0,
-                  fontWeight: location.pathname.startsWith("/settings") ? 700 : 400,
-                  color: location.pathname.startsWith("/settings")
-                    ? muiTheme.palette.primary.main
-                    : muiTheme.palette.text.secondary,
-                  borderBottom: location.pathname.startsWith("/settings")
-                    ? `2px solid ${muiTheme.palette.primary.main}`
-                    : "2px solid transparent",
-                  borderRadius: 0,
-                  fontSize: "0.875rem",
-                  textTransform: "none",
-                  whiteSpace: "nowrap",
-                  "&:hover": {
-                    backgroundColor: alpha(muiTheme.palette.primary.main, 0.06),
-                    color: muiTheme.palette.text.primary,
-                  },
-                }}
-              >
-                {t("sidebar.menu.settings")}
-              </MuiButton>
-              <Menu
-                anchorEl={settingsAnchor}
-                open={Boolean(settingsAnchor)}
-                onClose={() => setSettingsAnchor(null)}
-                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                transformOrigin={{ vertical: "top", horizontal: "left" }}
-              >
-                {settingsSubItems.map((sub) => (
-                  <MenuItem
-                    key={sub.path}
-                    onClick={() => {
-                      navigate(sub.path);
-                      setSettingsAnchor(null);
-                    }}
-                    selected={location.pathname === sub.path}
-                    sx={{ fontSize: "0.875rem" }}
-                  >
-                    {sub.text}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </>
-          )}
-        </Box>
-      )}
-
-      {/* Spacer */}
+      {/* Spacer — nav is now in NavRail */}
       <Box sx={{ flex: 1 }} />
 
       {/* Search — collapsed icon or expanded pill */}
@@ -712,6 +532,7 @@ function TopBar() {
               <IconButton
                 size="small"
                 onClick={handleClearSearch}
+                aria-label={t("search.clearSearch", "Clear search")}
                 sx={{
                   color: alpha(muiTheme.palette.text.secondary, 0.6),
                   padding: "4px",
@@ -769,18 +590,21 @@ function TopBar() {
 
               <Box sx={{ width: "1px", height: 16, backgroundColor: alpha(muiTheme.palette.divider, isDark ? 0.15 : 0.12), flexShrink: 0 }} />
 
-              {/* Filter */}
+              {/* Filter — opens the inline FilterPanel */}
               <IconButton
                 size="small"
-                onClick={handleOpenFilterModal}
+                onClick={() => setIsFilterPanelOpen((v) => !v)}
+                aria-label={t("search.filters", "Filters")}
+                aria-expanded={isFilterPanelOpen}
                 sx={{
-                  color: hasActiveFilters ? muiTheme.palette.primary.main : alpha(muiTheme.palette.text.secondary, 0.7),
+                  color: (activeFilterCount > 0 || isFilterPanelOpen) ? muiTheme.palette.primary.main : alpha(muiTheme.palette.text.secondary, 0.7),
                   padding: "5px", flexShrink: 0, position: "relative",
+                  backgroundColor: isFilterPanelOpen ? alpha(muiTheme.palette.primary.main, 0.1) : "transparent",
                   "&:hover": { backgroundColor: alpha(muiTheme.palette.action.active, 0.06) },
                 }}
               >
                 <FilterListIcon sx={{ fontSize: "20px" }} />
-                {hasActiveFilters && (
+                {activeFilterCount > 0 && (
                   <Box sx={{
                     position: "absolute", top: -3, right: -3,
                     backgroundColor: muiTheme.palette.primary.main,
@@ -790,7 +614,7 @@ function TopBar() {
                     fontSize: "0.55rem", fontWeight: 700, lineHeight: 1,
                     border: `2px solid ${muiTheme.palette.background.paper}`, boxSizing: "content-box",
                   }}>
-                    {Object.keys(filters).filter((k) => k !== "date_range_option").length}
+                    {activeFilterCount}
                   </Box>
                 )}
               </IconButton>
@@ -800,6 +624,7 @@ function TopBar() {
               {/* Search submit */}
               <IconButton
                 onClick={handleSearchSubmit}
+                aria-label={t("search.submit", "Search")}
                 sx={{
                   backgroundColor: muiTheme.palette.primary.main,
                   color: muiTheme.palette.primary.contrastText,
@@ -966,6 +791,17 @@ function TopBar() {
           </Button>
         </DialogActions>
       </Dialog>
+    </Box>
+
+    {/* Filter panel — inline, collapsible below TopBar row */}
+    <FilterPanel
+      open={isFilterPanelOpen}
+      onClose={() => setIsFilterPanelOpen(false)}
+      onAdvanced={() => setIsFilterPanelOpen(false)}
+    />
+
+    {/* Active filters bar — visible when filters are set */}
+    <ActiveFiltersBar />
     </Box>
   );
 }

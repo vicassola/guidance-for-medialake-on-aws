@@ -204,7 +204,7 @@ const ManageGroupsModal: React.FC<ManageGroupsModalProps> = ({ open, onClose }) 
             <Typography variant="h6" fontWeight={600}>
               {t("groups.actions.manageGroups")}
             </Typography>
-            <IconButton onClick={onClose} size="small">
+            <IconButton onClick={onClose} size="small" aria-label="Close">
               <CloseIcon />
             </IconButton>
           </Box>

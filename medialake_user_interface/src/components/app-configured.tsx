@@ -8,6 +8,7 @@ import { AuthProvider } from "../common/hooks/auth-context";
 import { PermissionProvider } from "../permissions";
 import "@aws-amplify/ui-react/styles.css";
 import { ModalProvider } from "./common/ModalConnector";
+import { ConfirmationProvider } from "./feedback/ConfirmationProvider";
 import { ThemeProvider } from "../hooks/useTheme";
 import { ThemeWrapper } from "./ThemeWrapper";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
@@ -48,7 +49,7 @@ const ErrorFallback = ({ error }: { error: unknown }) => {
       }}
     >
       <h2>{t("app.errors.somethingWentWrong")}:</h2>
-      <pre style={{ color: "red" }}>{message}</pre>
+      <pre style={{ color: "inherit", opacity: 0.8 }}>{message}</pre>
     </Box>
   );
 };
@@ -67,12 +68,14 @@ const AppConfigured = () => {
                       <DirectionProvider>
                         <TableDensityProvider>
                           <ThemeWrapper>
-                            <ModalProvider>
-                              <NotificationProvider>
-                                <JobNotificationSync />
-                                <RouterProvider router={router} />
-                              </NotificationProvider>
-                            </ModalProvider>
+                            <ConfirmationProvider>
+                              <ModalProvider>
+                                <NotificationProvider>
+                                  <JobNotificationSync />
+                                  <RouterProvider router={router} />
+                                </NotificationProvider>
+                              </ModalProvider>
+                            </ConfirmationProvider>
                           </ThemeWrapper>
                         </TableDensityProvider>
                       </DirectionProvider>

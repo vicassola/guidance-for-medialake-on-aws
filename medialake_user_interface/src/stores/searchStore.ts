@@ -412,6 +412,14 @@ export const useSearchFilters = () => useSearchStore((state) => state.filters);
 export const useFilterModalOpen = () => useSearchStore((state) => state.ui.filterModalOpen);
 export const useFilterModalDraft = () => useSearchStore((state) => state.ui.filterModalDraft);
 
+// Derived: number of active filters (excluding internal date_range_option key)
+export const useActiveFilterCount = () =>
+  useSearchStore((state) =>
+    Object.entries(state.filters).filter(
+      ([k, v]) => k !== "date_range_option" && v !== undefined && v !== ""
+    ).length
+  );
+
 // Action selectors
 export const useSearchActions = () => useSearchStore((state) => state.actions);
 export const useDomainActions = () => {
